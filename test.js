@@ -7,7 +7,7 @@ import { connect } from 'cloudflare:sockets';
 let userID = 'ecd77ffc-59b1-429a-ab6a-f53693969f3a';
 const userIDs = ['ecd77ffc-59b1-429a-ab6a-f53693969f3a', '8d98cb71-03b2-452a-bd1e-d398877dfa35', '6b5b929b-d3fa-4103-a878-31c7fc3986e0', 'c3dfdab2-eeda-4932-822f-5bcfef39d3e1', '86b1638c-b239-4cdd-a2cf-028720fa021b'];
 
-let proxyIP = 'cdn.cloudflare.net';
+let proxyIP = '';
 
 
 if (!isValidUUID(userID)) {
