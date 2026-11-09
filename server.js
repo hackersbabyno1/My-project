@@ -157,10 +157,9 @@ const server = http.createServer((req, res) => {
           }
 
           actionButtons = `
-            <div style="display:flex; gap:4px; align-items:center;">
-              <input type="number" id="custom-days-${k.id}" value="1" min="1" style="width:36px; background:#222; color:#fff; border:1px solid #444; padding:3px; text-align:center; border-radius:3px; font-size:11px;">
-              <button onclick="updateTime(${k.id}, 1)" style="background:#28a745; color:#fff; border:none; padding:4px 7px; border-radius:3px; cursor:pointer; font-size:10px; font-weight:bold;">+เพิ่ม</button>
-              <button onclick="updateTime(${k.id}, -1)" style="background:#dc3545; color:#fff; border:none; padding:4px 7px; border-radius:3px; cursor:pointer; font-size:10px; font-weight:bold;">-ลด</button>
+            <div style="display:flex; gap:6px; align-items:center;">
+              <input type="number" id="custom-days-${k.id}" value="1" min="1" style="width:45px; background:#222; color:#fff; border:1px solid #444; padding:4px; text-align:center; border-radius:3px; font-size:12px;">
+              <button onclick="updateTime(${k.id})" style="background:#28a745; color:#fff; border:none; padding:5px 10px; border-radius:3px; cursor:pointer; font-size:11px; font-weight:bold;">✓ ตกลง</button>
             </div>
           `;
         }
@@ -192,7 +191,9 @@ const server = http.createServer((req, res) => {
             function toggleMenu(event) {
               event.stopPropagation();
               const menu = document.getElementById('admin-dropdown');
-              menu.style.display = menu.style.display === 'block' ? 'none' : 'block';
+              if (menu) {
+                menu.style.display = menu.style.display === 'block' ? 'none' : 'block';
+              }
             }
             window.onclick = function(event) {
               const menu = document.getElementById('admin-dropdown');
@@ -200,9 +201,10 @@ const server = http.createServer((req, res) => {
                 menu.style.display = 'none';
               }
             }
-            function updateTime(id, multiplier) {
-              const inputVal = parseInt(document.getElementById('custom-days-' + id).value) || 1;
-              const days = inputVal * multiplier;
+            function updateTime(id) {
+              const inputEl = document.getElementById('custom-days-' + id);
+              if (!inputEl) return;
+              const days = parseInt(inputEl.value) || 1;
               window.location.href = '/update-time?id=' + id + '&days=' + days;
             }
           </script>
