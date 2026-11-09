@@ -26,9 +26,9 @@ const server = http.createServer((req, res) => {
     return res.end(JSON.stringify({ status: "OK", timestamp: new Date() }));
   }
 
-  // 2. เส้นทางล้างเซสชัน /logout (เคลียร์ Auth จริง 100%)
+  // 2. เส้นทางล้างเซสชัน /logout (เคลียร์ Basic Auth ออกจากเบราว์เซอร์)
   if (req.url === '/logout') {
-    res.writeHead(401, { 
+    res.writeHead(401, {
       'WWW-Authenticate': 'Basic realm="Admin Area"',
       'Content-Type': 'text/html; charset=utf-8',
       'Cache-Control': 'no-store, no-cache, must-revalidate, proxy-revalidate'
@@ -38,115 +38,151 @@ const server = http.createServer((req, res) => {
       <html>
       <head><title>Logged Out</title><meta name="viewport" content="width=device-width, initial-scale=1.0"></head>
       <body style="font-family:sans-serif; padding:20px; background:#121212; color:#eee; text-align:center;">
-        <h2>🔴 ล้างเซสชันและออกจากระบบเรียบร้อยแล้ว</h2>
-        <p style="margin-top:20px;"><a href="/10admin" style="background:#007bff; color:#fff; padding:10px 20px; text-decoration:none; border-radius:5px;">🔑 คลิกที่นี่เพื่อเข้าสู่ระบบใหม่</a></p>
+        <h2>🔴 ออกจากระบบแอดมินเรียบร้อยแล้ว</h2>
+        <p style="margin-top:20px;"><a href="/" style="background:#007bff; color:#fff; padding:10px 20px; text-decoration:none; border-radius:5px;">🏠 กลับสู่หน้าแรก</a></p>
       </body>
       </html>
     `);
   }
 
-  // 3. เส้นทางหน้าหลังบ้าน /10admin (มีปุ่มสลับไปหน้าแรก และปุ่มล็อกเอาต์)
-  if (req.url === '/10admin') {
-    const auth = req.headers['authorization'];
-    if (!auth) {
-      res.writeHead(401, { 'WWW-Authenticate': 'Basic realm="Admin Area"' });
-      return res.end('Access Denied: Authentication Required');
-    }
+  // 3. ตรวจสอบการล็อกอินแอดมินผ่าน Basic Auth (ใช้สำหรับหน้าแรกเมื่อแอดมินล็อกอินเข้ามา)
+  const auth = req.headers['authorization'];
+  let isAdmin = false;
+  if (auth) {
+    try {
+      const [user, pass] = Buffer.from(auth.split(' ')[1], 'base64').toString().split(':');
+      if (user === ADMIN_USER && checkPassword(pass)) {
+        isAdmin = true;
+      }
+    } catch (e) {}
+  }
 
-    const [user, pass] = Buffer.from(auth.split(' ')[1], 'base64').toString().split(':');
-    if (user !== ADMIN_USER || !checkPassword(pass)) {
-      res.writeHead(401, { 'WWW-Authenticate': 'Basic realm="Admin Area"' });
-      return res.end('Access Denied: Invalid Credentials');
-    }
-
+  // 4. หน้าแรก (Decoy Store + ฟอร์มสมัครสมาชิก/ล็อกอิน)
+  if (req.url === '/' || req.url.startsWith('/?')) {
     const host = req.headers.host || "my-project-websocket.onrender.com";
-    const keyRows = KEYS.map(k => {
-      const vlessLink = `vless://${k.uuid}@${host}:443?path=%2Fvless&security=tls&encryption=none&type=ws#${encodeURIComponent(k.name)}`;
-      return `
-        <tr style="border-bottom: 1px solid #333;">
-          <td style="padding:10px;">${k.id}</td>
-          <td style="padding:10px; font-weight:bold;">${k.name}</td>
-          <td style="padding:10px;"><span style="color:${k.active ? '#00ff00' : '#ff0000'};">${k.active ? 'เปิดใช้งาน' : 'ปิดใช้งาน'}</span></td>
-          <td style="padding:10px;">
-            <div style="display:flex; gap:8px; align-items:center;">
-              <input type="text" id="key-${k.id}" value="${vlessLink}" readonly style="flex:1; background:#222; color:#fff; border:1px solid #444; padding:8px; border-radius:4px; font-size:12px;" onclick="this.select();">
-              <button onclick="copyKey('key-${k.id}', this)" style="background:#28a745; color:#fff; border:none; padding:8px 12px; border-radius:4px; cursor:pointer; font-weight:bold; white-space:nowrap;">📋 คัดลอก</button>
-            </div>
-          </td>
-        </tr>
-      `;
-    }).join('');
 
+    // ถ้าแอดมินล็อกอินแล้ว แสดง Full Control Panel เต็มรูปแบบทันทีที่หน้าแรก
+    if (isAdmin) {
+      const keyRows = KEYS.map(k => {
+        const vlessLink = `vless://${k.uuid}@${host}:443?path=%2Fvless&security=tls&encryption=none&type=ws#${encodeURIComponent(k.name)}`;
+        return `
+          <tr style="border-bottom: 1px solid #333;">
+            <td style="padding:10px;">${k.id}</td>
+            <td style="padding:10px; font-weight:bold;">${k.name}</td>
+            <td style="padding:10px;"><span style="color:${k.active ? '#00ff00' : '#ff0000'};">${k.active ? 'เปิดใช้งาน' : 'ปิดใช้งาน'}</span></td>
+            <td style="padding:10px;">
+              <div style="display:flex; gap:8px; align-items:center;">
+                <input type="text" id="key-${k.id}" value="${vlessLink}" readonly style="flex:1; background:#222; color:#fff; border:1px solid #444; padding:8px; border-radius:4px; font-size:12px;" onclick="this.select();">
+                <button onclick="copyKey('key-${k.id}', this)" style="background:#28a745; color:#fff; border:none; padding:8px 12px; border-radius:4px; cursor:pointer; font-weight:bold; white-space:nowrap;">📋 คัดลอก</button>
+              </div>
+            </td>
+          </tr>
+        `;
+      }).join('');
+
+      res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8' });
+      return res.end(`
+        <!DOCTYPE html>
+        <html>
+        <head>
+          <title>Full Control - Admin Panel</title>
+          <meta name="viewport" content="width=device-width, initial-scale=1.0">
+          <script>
+            function copyKey(id, btn) {
+              const input = document.getElementById(id);
+              input.select();
+              input.setSelectionRange(0, 99999);
+              navigator.clipboard.writeText(input.value).then(() => {
+                const orig = btn.innerHTML;
+                btn.innerHTML = '✓ คัดลอกแล้ว';
+                btn.style.background = '#17a2b8';
+                setTimeout(() => {
+                  btn.innerHTML = orig;
+                  btn.style.background = '#28a745';
+                }, 2000);
+              }).catch(() => {
+                document.execCommand('copy');
+                btn.innerHTML = '✓ คัดลอกแล้ว';
+                setTimeout(() => { btn.innerHTML = '📋 คัดลอก'; }, 2000);
+              });
+            }
+          </script>
+        </head>
+        <body style="font-family:sans-serif; padding:15px; background:#121212; color:#eee;">
+          <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px; margin-bottom:10px;">
+            <h2>⚡ Full Control: แผงควบคุมแอดมินสูงสุด</h2>
+            <div style="display:flex; gap:8px;">
+              <a href="/logout" style="background:#dc3545; color:#fff; padding:8px 15px; text-decoration:none; border-radius:5px; font-size:14px;">🔴 ออกจากระบบ</a>
+            </div>
+          </div>
+          <p>ยินดีต้อนรับป๋า (Admin) | เซิร์ฟเวอร์: <b>${host}</b></p>
+          <hr style="border:1px solid #333;">
+          <div style="overflow-x:auto;">
+            <table style="width:100%; border-collapse:collapse; text-align:left; min-width:600px;">
+              <thead>
+                <tr style="background:#222; color:#aaa;">
+                  <th style="padding:10px;">#</th>
+                  <th style="padding:10px;">ชื่อ</th>
+                  <th style="padding:10px;">สถานะ</th>
+                  <th style="padding:10px;">ลิงก์ VLESS (กดปุ่มคัดลอกเพื่อนำไปวางเทสต์)</th>
+                </tr>
+              </thead>
+              <tbody>${keyRows}</tbody>
+            </table>
+          </div>
+        </body>
+        </html>
+      `);
+    }
+
+    // ถ้ายังไม่ได้ล็อกอิน แสดงหน้าร้านค้าพรางตาพร้อมฟอร์มสมัครสมาชิก/ล็อกอิน (ยังไม่เปิดใช้งานจริงสำหรับคนทั่วไป)
     res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8' });
     return res.end(`
       <!DOCTYPE html>
       <html>
       <head>
-        <title>5-Key Permission Panel</title>
+        <title>Online Store - สมัครสมาชิก / เข้าสู่ระบบ</title>
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
-        <script>
-          function copyKey(id, btn) {
-            const input = document.getElementById(id);
-            input.select();
-            input.setSelectionRange(0, 99999);
-            navigator.clipboard.writeText(input.value).then(() => {
-              const orig = btn.innerHTML;
-              btn.innerHTML = '✓ คัดลอกแล้ว';
-              btn.style.background = '#17a2b8';
-              setTimeout(() => {
-                btn.innerHTML = orig;
-                btn.style.background = '#28a745';
-              }, 2000);
-            }).catch(() => {
-              document.execCommand('copy');
-              btn.innerHTML = '✓ คัดลอกแล้ว';
-              setTimeout(() => { btn.innerHTML = '📋 คัดลอก'; }, 2000);
-            });
-          }
-        </script>
       </head>
-      <body style="font-family:sans-serif; padding:15px; background:#121212; color:#eee;">
-        <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px; margin-bottom:10px;">
-          <h2>🔑 แผงควบคุม 5 คีย์ VLESS (Master Admin)</h2>
-          <div style="display:flex; gap:8px;">
-            <a href="/" style="background:#17a2b8; color:#fff; padding:8px 15px; text-decoration:none; border-radius:5px; font-size:14px;">🏠 ไปหน้าแรก</a>
-            <a href="/logout" style="background:#dc3545; color:#fff; padding:8px 15px; text-decoration:none; border-radius:5px; font-size:14px;">🔴 ออกจากระบบ</a>
+      <body style="font-family:sans-serif; padding:20px; background:#121212; color:#eee; text-align:center; display:flex; justify-content:center; align-items:center; height:90vh; margin:0;">
+        <div style="background:#1e1e1e; padding:30px; border-radius:8px; box-shadow:0 4px 10px rgba(0,0,0,0.5); width:100%; max-width:400px; text-align:left;">
+          <h2 style="text-align:center; margin-bottom:20px; color:#fff;">🛒 Online Store</h2>
+          <p style="text-align:center; color:#aaa; font-size:14px; margin-bottom:20px;">สมัครสมาชิกหรือเข้าสู่ระบบเพื่อใช้งานร้านค้า</p>
+          
+          <form onsubmit="event.preventDefault(); alert('ระบบสมัครสมาชิกและร้านค้ากำลังอยู่ในระหว่างพัฒนา ยังไม่เปิดให้บริการครับ');" style="display:flex; flex-direction:column; gap:15px;">
+            <div>
+              <label style="font-size:12px; color:#aaa; display:block; margin-bottom:5px;">ชื่อผู้ใช้งาน / อีเมล</label>
+              <input type="text" placeholder="กรอกชื่อผู้ใช้งาน..." style="width:100%; padding:10px; background:#2a2a2a; border:1px solid #444; color:#fff; border-radius:4px; box-sizing:border-box;">
+            </div>
+            <div>
+              <label style="font-size:12px; color:#aaa; display:block; margin-bottom:5px;">รหัสผ่าน</label>
+              <input type="password" placeholder="กรอกรหัสผ่าน..." style="width:100%; padding:10px; background:#2a2a2a; border:1px solid #444; color:#fff; border-radius:4px; box-sizing:border-box;">
+            </div>
+            <button type="submit" style="background:#007bff; color:#fff; border:none; padding:12px; border-radius:4px; font-weight:bold; cursor:pointer; margin-top:10px;">เข้าสู่ระบบ / สมัครสมาชิก</button>
+          </form>
+
+          <div style="text-align:center; margin-top:20px; border-top:1px solid #333; padding-top:15px;">
+            <a href="/10admin" style="color:#666; font-size:12px; text-decoration:none;">Admin Login</a>
           </div>
-        </div>
-        <p>ยินดีต้อนรับป๋า | เซิร์ฟเวอร์: <b>${host}</b></p>
-        <hr style="border:1px solid #333;">
-        <div style="overflow-x:auto;">
-          <table style="width:100%; border-collapse:collapse; text-align:left; min-width:600px;">
-            <thead>
-              <tr style="background:#222; color:#aaa;">
-                <th style="padding:10px;">#</th>
-                <th style="padding:10px;">ชื่อ</th>
-                <th style="padding:10px;">สถานะ</th>
-                <th style="padding:10px;">คีย์ VLESS (กดปุ่มคัดลอกได้ทันที)</th>
-              </tr>
-            </thead>
-            <tbody>${keyRows}</tbody>
-          </table>
         </div>
       </body>
       </html>
     `);
   }
 
-  // 4. หน้าแรก (Decoy Store - หน้าร้านค้าพรางตา พร้อมปุ่มกดกลับมาหน้าแอดมิน)
-  res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8' });
-  res.end(`
-    <!DOCTYPE html>
-    <html>
-    <head><title>Online Store</title><meta name="viewport" content="width=device-width, initial-scale=1.0"></head>
-    <body style="font-family:sans-serif; padding:20px; background:#121212; color:#eee; text-align:center;">
-      <h1>🛒 Online Store</h1>
-      <p>Shopping Cart is empty.</p>
-      <hr style="border:1px solid #333; margin:20px auto; width:50%;">
-      <p><a href="/10admin" style="background:#28a745; color:#fff; padding:10px 20px; text-decoration:none; border-radius:5px; font-weight:bold;">⚙️ กลับสู่หน้าแผงควบคุมแอดมิน</a></p>
-    </body>
-    </html>
-  `);
+  // 5. ทางลัดเข้าหน้าล็อกอินแอดมินโดยตรง /10admin
+  if (req.url === '/10admin') {
+    if (!isAdmin) {
+      res.writeHead(401, { 'WWW-Authenticate': 'Basic realm="Admin Area"' });
+      return res.end('Access Denied: Authentication Required');
+    }
+    // ถ้าล็อกอินแล้ว ให้รีไดเรกต์กลับมาหน้าแรกที่เป็น Full Control Panel ทันที
+    res.writeHead(302, { 'Location': '/' });
+    return res.end();
+  }
+
+  res.writeHead(404, { 'Content-Type': 'text/plain' });
+  res.end('Not Found');
 });
 
 // === 3. เครื่องยนต์ VLESS WebSocket Engine ===
