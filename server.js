@@ -11,7 +11,7 @@ function checkPassword(pass) {
   return input === expected;
 }
 
-// === 2. ฐานข้อมูลคีย์สมาชิก (Key 1 แอดมินหลักถาวร, Key 2-5 เป็น test1 ถึง test4 อัป 30 วันและหมุนเวียนอัตโนมัติเมื่อหมดอายุ) ===
+// === 2. ฐานข้อมูลคีย์สมาชิก (Key 1 แอดมินหลักถาวร, Key 2-5 เป็น test1 ถึง test4) ===
 const now = Date.now();
 const oneDay = 24 * 60 * 60 * 1000;
 
@@ -23,7 +23,6 @@ let KEYS = [
   { id: 5, name: "test4", uuid: crypto.randomUUID(), active: true, expiresAt: now + (3 * oneDay) }
 ];
 
-// ฟังก์ชันตรวจสอบและอัปเดตสถานะคีย์ (ถ้าหมดอายุ ลบตัวเก่า สร้างใหม่ทันที)
 function checkAndAutoRegenerateKeys() {
   const currentTime = Date.now();
   KEYS.forEach(k => {
@@ -40,13 +39,11 @@ const server = http.createServer((req, res) => {
 
   checkAndAutoRegenerateKeys();
 
-  // 1. เส้นทาง Healthz เช็ก Cron
   if (pathname === '/healthz' || pathname === '/cron') {
     res.writeHead(200, { 'Content-Type': 'application/json' });
     return res.end(JSON.stringify({ status: "OK", timestamp: new Date() }));
   }
 
-  // ฟังก์ชันตรวจสอบสิทธิ์แอดมิน
   const auth = req.headers['authorization'];
   let isAdmin = false;
   if (auth) {
@@ -56,50 +53,41 @@ const server = http.createServer((req, res) => {
     } catch (e) {}
   }
 
-  // 2. เส้นทางจัดการคำสั่งพิเศษสำหรับ Key 1 (รีเฟรช / สร้าง UUID ใหม่)
   if (pathname === '/admin-action') {
     if (!isAdmin) {
       res.writeHead(401, { 'WWW-Authenticate': 'Basic realm="Admin Area"' });
       return res.end('Unauthorized');
     }
-
     const action = urlObj.searchParams.get('action');
     const adminKey = KEYS.find(k => k.id === 1);
-
     if (adminKey && action === 'regenerate') {
       adminKey.uuid = crypto.randomUUID();
     }
-
     res.writeHead(302, { 'Location': '/' });
     return res.end();
   }
 
-  // 3. เส้นทางจัดการเพิ่ม/ลดเวลาคีย์ลูกข่าย
   if (pathname === '/update-time') {
     if (!isAdmin) {
       res.writeHead(401, { 'WWW-Authenticate': 'Basic realm="Admin Area"' });
       return res.end('Unauthorized');
     }
-
     const id = parseInt(urlObj.searchParams.get('id'));
     const days = parseInt(urlObj.searchParams.get('days') || 0);
-
     const targetKey = KEYS.find(k => k.id === id);
     if (targetKey && targetKey.id !== 1) {
       const currentExpiry = targetKey.expiresAt < Date.now() ? Date.now() : targetKey.expiresAt;
       targetKey.expiresAt = currentExpiry + (days * oneDay);
     }
-
     res.writeHead(302, { 'Location': '/' });
     return res.end();
   }
 
-  // 4. เส้นทางล้างเซสชัน /logout
   if (pathname === '/logout') {
     res.writeHead(401, {
       'WWW-Authenticate': 'Basic realm="Admin Area"',
       'Content-Type': 'text/html; charset=utf-8',
-      'Cache-Control': 'no-store, no-cache, must-revalidate, proxy-revalidate'
+      'Cache-Control': 'no-store, no-cache, must-revalidate'
     });
     return res.end(`
       <!DOCTYPE html>
@@ -113,7 +101,6 @@ const server = http.createServer((req, res) => {
     `);
   }
 
-  // 5. หน้าแรก (Decoy Store พร้อมช่องล็อกอินอันเดียว หรือ Full Control Panel เมื่อล็อกอินแอดมิน)
   if (pathname === '/') {
     const host = req.headers.host || "my-project-websocket.onrender.com";
 
@@ -128,10 +115,10 @@ const server = http.createServer((req, res) => {
           timeStatus = '<span style="color:#00ff00; font-weight:bold;">∞ สิทธิ์สูงสุดถาวร (Master)</span>';
           actionButtons = `
             <div style="position:relative; display:inline-block;">
-              <button onclick="toggleMenu()" style="background:#ffc107; color:#000; border:none; padding:6px 12px; border-radius:4px; cursor:pointer; font-weight:bold; font-size:12px;">⚙️ เมนูป้องกัน (จัดการคีย์)</button>
+              <button onclick="toggleMenu()" style="background:#ffc107; color:#000; border:none; padding:6px 12px; border-radius:4px; cursor:pointer; font-weight:bold; font-size:12px;">⚙️ เมนูป้องกัน</button>
               <div id="admin-dropdown" style="display:none; position:absolute; right:0; background:#222; border:1px solid #444; border-radius:4px; box-shadow:0 4px 10px rgba(0,0,0,0.5); z-index:10; min-width:160px; margin-top:5px;">
-                <a href="/admin-action?action=refresh" style="display:block; padding:10px; color:#fff; text-decoration:none; font-size:12px; border-bottom:1px solid #333;">🔄 รีเฟรชสถานะคีย์</a>
-                <a href="/admin-action?action=regenerate" onclick="return confirm('⚠️ ยืนยันการสร้างคีย์ใหม่?');" style="display:block; padding:10px; color:#ff4444; text-decoration:none; font-size:12px; font-weight:bold;">✨ สร้างคีย์ใหม่ (Regenerate)</a>
+                <a href="/admin-action?action=refresh" style="display:block; padding:10px; color:#fff; text-decoration:none; font-size:12px; border-bottom:1px solid #333;">🔄 รีเฟรช</a>
+                <a href="/admin-action?action=regenerate" onclick="return confirm('⚠️ ยืนยันการสร้างคีย์ใหม่?');" style="display:block; padding:10px; color:#ff4444; text-decoration:none; font-size:12px; font-weight:bold;">✨ สร้างคีย์ใหม่</a>
               </div>
             </div>
           `;
@@ -140,9 +127,9 @@ const server = http.createServer((req, res) => {
           const daysLeft = Math.ceil(timeLeft / (1000 * 60 * 60 * 24));
           
           if (daysLeft > 0) {
-            timeStatus = `<span style="color:#00ff00;">เหลือเวลาอีก <b>${daysLeft}</b> วัน (ระบบจะสร้างใหม่ทันทีเมื่อหมดอายุ)</span>`;
+            timeStatus = `<span style="color:#00ff00;">เหลือ <b>${daysLeft}</b> วัน (หมุนเวียนอัตโนมัติ)</span>`;
           } else {
-            timeStatus = `<span style="color:#ff4444; font-weight:bold;">🔄 กำลังสร้างคีย์ใหม่ให้อัตโนมัติ...</span>`;
+            timeStatus = `<span style="color:#ff4444; font-weight:bold;">🔄 กำลังสร้างใหม่...</span>`;
           }
 
           actionButtons = `
@@ -205,7 +192,7 @@ const server = http.createServer((req, res) => {
         </head>
         <body style="font-family:sans-serif; padding:15px; background:#121212; color:#eee;">
           <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px; margin-bottom:10px;">
-            <h2>⚡ Full Control: ระบบหมุนเวียนคีย์อัตโนมัติ</h2>
+            <h2>⚡ Full Control: ระบบจัดการคีย์</h2>
             <div style="display:flex; gap:8px;">
               <a href="/logout" style="background:#dc3545; color:#fff; padding:8px 15px; text-decoration:none; border-radius:5px; font-size:14px;">🔴 ออกจากระบบ</a>
             </div>
@@ -219,8 +206,8 @@ const server = http.createServer((req, res) => {
                   <th style="padding:10px;">#</th>
                   <th style="padding:10px;">ชื่อยูสเซอร์</th>
                   <th style="padding:10px;">สถานะเวลา</th>
-                  <th style="padding:10px;">จัดการเวลา / เมนูป้องกัน</th>
-                  <th style="padding:10px;">ลิงก์ VLESS (คัดลอกไปใช้งาน)</th>
+                  <th style="padding:10px;">จัดการเวลา</th>
+                  <th style="padding:10px;">ลิงก์ VLESS</th>
                 </tr>
               </thead>
               <tbody>${keyRows}</tbody>
@@ -231,13 +218,13 @@ const server = http.createServer((req, res) => {
       `);
     }
 
-    // หน้าร้านค้าพรางตาสำหรับคนทั่วไป (มีสินค้า 4 ช่อง และฟอร์มล็อกอินช่องทางเดียว)
+    // หน้าร้านค้าพรางตาสำหรับคนทั่วไป (มีประกาศปรับปรุงระบบ และโชว์สินค้า 4 ช่องแบบไม่มีปุ่มซื้อ)
     res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8' });
     return res.end(`
       <!DOCTYPE html>
       <html>
       <head>
-        <title>Online Store - ร้านค้าออนไลน์</title>
+        <title>Online Store - ศูนย์รวมสินค้าราคาพิเศษ</title>
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
         <script>
           function handleLogin(event) {
@@ -251,60 +238,74 @@ const server = http.createServer((req, res) => {
               if (res.redirected || res.ok) {
                 window.location.reload();
               } else {
-                alert('ชื่อผู้ใช้หรือรหัสผ่านไม่ถูกต้อง หรือระบบยังไม่เปิดให้บริการสำหรับบุคคลทั่วไป');
+                alert('ชื่อผู้ใช้หรือรหัสผ่านไม่ถูกต้อง');
               }
             }).catch(() => {
-              alert('เกิดข้อผิดพลาดในการเข้าสู่ระบบ');
+              alert('เกิดข้อผิดพลาดในการเชื่อมต่อ');
             });
           }
         </script>
       </head>
-      <body style="font-family:sans-serif; margin:0; background:#f4f6f9; color:#333;">
-        <!-- แถบเมนูด้านบน พร้อมฟอร์มล็อกอินช่องทางเดียว -->
-        <div style="background:#fff; padding:12px 20px; display:flex; justify-content:space-between; align-items:center; box-shadow:0 2px 4px rgba(0,0,0,0.1); flex-wrap:wrap; gap:10px;">
-          <h2 style="margin:0; color:#007bff; font-size:20px;">🛒 Online Store</h2>
+      <body style="font-family:sans-serif; margin:0; background:#f8f9fa; color:#333;">
+        <!-- แถบเมนูด้านบน พร้อมฟอร์มล็อกอินแอดมิน -->
+        <div style="background:#ffffff; padding:15px 25px; display:flex; justify-content:space-between; align-items:center; box-shadow:0 2px 8px rgba(0,0,0,0.08); flex-wrap:wrap; gap:12px;">
+          <div>
+            <h2 style="margin:0; color:#2c3e50; font-size:22px;">🛍️ Mega Online Store</h2>
+            <p style="margin:2px 0 0; font-size:12px; color:#7f8c8d;">ศูนย์รวมสินค้าคุณภาพดี ราคาพิเศษ</p>
+          </div>
           
           <form onsubmit="handleLogin(event)" style="display:flex; gap:8px; align-items:center;">
-            <input type="text" id="login-user" placeholder="Username" required style="padding:6px 10px; border:1px solid #ccc; border-radius:4px; font-size:12px; width:110px;">
-            <input type="password" id="login-pass" placeholder="Password" required style="padding:6px 10px; border:1px solid #ccc; border-radius:4px; font-size:12px; width:110px;">
-            <button type="submit" style="background:#007bff; color:#fff; border:none; padding:6px 12px; border-radius:4px; cursor:pointer; font-size:12px; font-weight:bold;">เข้าสู่ระบบ</button>
+            <input type="text" id="login-user" placeholder="Username" required style="padding:7px 12px; border:1px solid #ced4da; border-radius:4px; font-size:12px; width:110px;">
+            <input type="password" id="login-pass" placeholder="Password" required style="padding:7px 12px; border:1px solid #ced4da; border-radius:4px; font-size:12px; width:110px;">
+            <button type="submit" style="background:#2ecc71; color:#fff; border:none; padding:7px 15px; border-radius:4px; cursor:pointer; font-size:12px; font-weight:bold;">เข้าสู่ระบบ</button>
           </form>
         </div>
 
-        <!-- เนื้อหาร้านค้า (โชว์สินค้า 4 ช่อง) -->
-        <div style="max-width:1000px; margin:20px auto; padding:0 15px;">
+        <!-- ประกาศแจ้งเตือนหน้าเว็บ: กำลังอยู่ในช่วงปรับปรุงระบบ -->
+        <div style="max-width:1100px; margin:20px auto 0; padding:0 20px;">
+          <div style="background:#fff3cd; color:#856404; border:1px solid #ffeeba; padding:15px 20px; border-radius:8px; text-align:center; font-size:14px; box-shadow:0 2px 5px rgba(0,0,0,0.03);">
+            ⚠️ <b>ประกาศแจ้งเตือน:</b> เว็บไซต์กำลังอยู่ในช่วงปรับปรุงระบบและพัฒนาระบบตะกร้าสินค้า ระบบสั่งซื้อและสมัครสมาชิกยังไม่เปิดให้บริการในขณะนี้ ขออภัยในความไม่สะดวกครับ
+          </div>
+        </div>
+
+        <!-- เนื้อหาร้านค้า: แสดงสินค้า 4 ช่องโชว์ตัวอย่าง (ไม่มีปุ่มซื้อ) -->
+        <div style="max-width:1100px; margin:25px auto; padding:0 20px;">
           <div style="text-align:center; margin-bottom:30px;">
-            <h1 style="font-size:24px; margin-bottom:10px;">สินค้ายอดนิยม</h1>
-            <p style="color:#666; font-size:14px;">เลือกซื้อสินค้าคุณภาพดี ราคาพิเศษส่งตรงถึงบ้านคุณ</p>
+            <h1 style="font-size:26px; margin-bottom:10px; color:#2c3e50;">🔥 สินค้าตัวอย่างจัดแสดง</h1>
+            <p style="color:#7f8c8d; font-size:14px;">รายการสินค้าที่กำลังจะวางจำหน่ายเร็วๆ นี้</p>
           </div>
 
-          <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(200px, 1fr)); gap:20px;">
-            <div style="background:#fff; border-radius:8px; overflow:hidden; box-shadow:0 2px 5px rgba(0,0,0,0.05); text-align:center; padding-bottom:15px;">
-              <div style="background:#e9ecef; height:140px; display:flex; align-items:center; justify-content:center; color:#adb5bd; font-size:14px;">รูปสินค้า 1</div>
-              <h3 style="font-size:16px; margin:15px 10px 5px;">หูฟังไร้สาย Pro</h3>
-              <p style="color:#007bff; font-weight:bold; margin:0 0 15px;">฿890</p>
-              <button onclick="alert('เพิ่มสินค้าลงตะกร้าแล้ว')" style="background:#007bff; color:#fff; border:none; padding:8px 15px; border-radius:4px; cursor:pointer; font-size:13px;">Add to Cart</button>
+          <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(220px, 1fr)); gap:25px;">
+            <!-- สินค้าที่ 1 -->
+            <div style="background:#ffffff; border-radius:10px; overflow:hidden; box-shadow:0 4px 12px rgba(0,0,0,0.06); text-align:center; padding-bottom:20px;">
+              <div style="background:linear-gradient(135deg, #74b9ff, #0984e3); height:150px; display:flex; align-items:center; justify-content:center; color:#fff; font-size:15px; font-weight:bold;">🎧 หูฟังไร้สาย Pro ANC</div>
+              <h3 style="font-size:16px; margin:15px 15px 8px; color:#2c3e50;">หูฟังตัดเสียงรบกวน Pro</h3>
+              <p style="color:#e74c3c; font-weight:bold; font-size:17px; margin:0 0 12px;">฿890</p>
+              <span style="display:inline-block; background:#e9ecef; color:#6c757d; padding:6px 15px; border-radius:4px; font-size:12px; font-weight:bold;">⏳ อยู่ระหว่างปรับปรุงระบบ</span>
             </div>
 
-            <div style="background:#fff; border-radius:8px; overflow:hidden; box-shadow:0 2px 5px rgba(0,0,0,0.05); text-align:center; padding-bottom:15px;">
-              <div style="background:#e9ecef; height:140px; display:flex; align-items:center; justify-content:center; color:#adb5bd; font-size:14px;">รูปสินค้า 2</div>
-              <h3 style="font-size:16px; margin:15px 10px 5px;">สมาร์ทวอทช์ Sport</h3>
-              <p style="color:#007bff; font-weight:bold; margin:0 0 15px;">฿1,290</p>
-              <button onclick="alert('เพิ่มสินค้าลงตะกร้าแล้ว')" style="background:#007bff; color:#fff; border:none; padding:8px 15px; border-radius:4px; cursor:pointer; font-size:13px;">Add to Cart</button>
+            <!-- สินค้าที่ 2 -->
+            <div style="background:#ffffff; border-radius:10px; overflow:hidden; box-shadow:0 4px 12px rgba(0,0,0,0.06); text-align:center; padding-bottom:20px;">
+              <div style="background:linear-gradient(135deg, #55efc4, #00b894); height:150px; display:flex; align-items:center; justify-content:center; color:#fff; font-size:15px; font-weight:bold;">⌚ สมาร์ทวอทช์ Sport</div>
+              <h3 style="font-size:16px; margin:15px 15px 8px; color:#2c3e50;">สมาร์ทวอทช์กันน้ำ IP68</h3>
+              <p style="color:#e74c3c; font-weight:bold; font-size:17px; margin:0 0 12px;">฿1,290</p>
+              <span style="display:inline-block; background:#e9ecef; color:#6c757d; padding:6px 15px; border-radius:4px; font-size:12px; font-weight:bold;">⏳ อยู่ระหว่างปรับปรุงระบบ</span>
             </div>
 
-            <div style="background:#fff; border-radius:8px; overflow:hidden; box-shadow:0 2px 5px rgba(0,0,0,0.05); text-align:center; padding-bottom:15px;">
-              <div style="background:#e9ecef; height:140px; display:flex; align-items:center; justify-content:center; color:#adb5bd; font-size:14px;">รูปสินค้า 3</div>
-              <h3 style="font-size:16px; margin:15px 10px 5px;">ลำโพงบลูทูธ Bass</h3>
-              <p style="color:#007bff; font-weight:bold; margin:0 0 15px;">฿650</p>
-              <button onclick="alert('เพิ่มสินค้าลงตะกร้าแล้ว')" style="background:#007bff; color:#fff; border:none; padding:8px 15px; border-radius:4px; cursor:pointer; font-size:13px;">Add to Cart</button>
+            <!-- สินค้าที่ 3 -->
+            <div style="background:#ffffff; border-radius:10px; overflow:hidden; box-shadow:0 4px 12px rgba(0,0,0,0.06); text-align:center; padding-bottom:20px;">
+              <div style="background:linear-gradient(135deg, #ffeaa7, #fdcb6e); height:150px; display:flex; align-items:center; justify-content:center; color:#2d3436; font-size:15px; font-weight:bold;">🔊 ลำโพงบลูทูธ Bass+</div>
+              <h3 style="font-size:16px; margin:15px 15px 8px; color:#2c3e50;">ลำโพงเบสหนักพกพา</h3>
+              <p style="color:#e74c3c; font-weight:bold; font-size:17px; margin:0 0 12px;">฿650</p>
+              <span style="display:inline-block; background:#e9ecef; color:#6c757d; padding:6px 15px; border-radius:4px; font-size:12px; font-weight:bold;">⏳ อยู่ระหว่างปรับปรุงระบบ</span>
             </div>
 
-            <div style="background:#fff; border-radius:8px; overflow:hidden; box-shadow:0 2px 5px rgba(0,0,0,0.05); text-align:center; padding-bottom:15px;">
-              <div style="background:#e9ecef; height:140px; display:flex; align-items:center; justify-content:center; color:#adb5bd; font-size:14px;">รูปสินค้า 4</div>
-              <h3 style="font-size:16px; margin:15px 10px 5px;">พาวเวอร์แบงค์ 20000mAh</h3>
-              <p style="color:#007bff; font-weight:bold; margin:0 0 15px;">฿790</p>
-              <button onclick="alert('เพิ่มสินค้าลงตะกร้าแล้ว')" style="background:#007bff; color:#fff; border:none; padding:8px 15px; border-radius:4px; cursor:pointer; font-size:13px;">Add to Cart</button>
+            <!-- สินค้าที่ 4 -->
+            <div style="background:#ffffff; border-radius:10px; overflow:hidden; box-shadow:0 4px 12px rgba(0,0,0,0.06); text-align:center; padding-bottom:20px;">
+              <div style="background:linear-gradient(135deg, #a29bfe, #6c5ce7); height:150px; display:flex; align-items:center; justify-content:center; color:#fff; font-size:15px; font-weight:bold;">🔋 พาวเวอร์แบงค์ 20000mAh</div>
+              <h3 style="font-size:16px; margin:15px 15px 8px; color:#2c3e50;">แบตสำรองชาร์จไว PD</h3>
+              <p style="color:#e74c3c; font-weight:bold; font-size:17px; margin:0 0 12px;">฿790</p>
+              <span style="display:inline-block; background:#e9ecef; color:#6c757d; padding:6px 15px; border-radius:4px; font-size:12px; font-weight:bold;">⏳ อยู่ระหว่างปรับปรุงระบบ</span>
             </div>
           </div>
         </div>
@@ -313,11 +314,10 @@ const server = http.createServer((req, res) => {
     `);
   }
 
-  // 6. ทางลัดเข้าหน้าล็อกอินแอดมิน /10admin
   if (pathname === '/10admin') {
     if (!isAdmin) {
       res.writeHead(401, { 'WWW-Authenticate': 'Basic realm="Admin Area"' });
-      return res.end('Access Denied: Authentication Required');
+      return res.end('Access Denied');
     }
     res.writeHead(302, { 'Location': '/' });
     return res.end();
@@ -327,24 +327,19 @@ const server = http.createServer((req, res) => {
   res.end('Not Found');
 });
 
-// === 3. เครื่องยนต์ VLESS WebSocket Engine (ตรวจสอบและหมุนเวียนคีย์อัตโนมัติ) ===
 server.on('upgrade', (req, socket, head) => {
   if (req.url !== '/vless') {
     socket.destroy();
     return;
   }
-
   checkAndAutoRegenerateKeys();
-
   socket.write(
     'HTTP/1.1 101 Switching Protocols\r\n' +
     'Upgrade: websocket\r\n' +
     'Connection: Upgrade\r\n\r\n'
   );
-
   socket.once('data', (chunk) => {
     if (chunk.length < 24) return socket.destroy();
-
     const clientUuidHex = chunk.slice(1, 17).toString('hex');
     const formattedUuid = [
       clientUuidHex.slice(0,8), clientUuidHex.slice(8,12),
@@ -353,20 +348,14 @@ server.on('upgrade', (req, socket, head) => {
     ].join('-');
 
     const userKey = KEYS.find(k => k.uuid === formattedUuid && k.active);
-    if (!userKey) {
-      return socket.destroy();
-    }
-
-    if (userKey.id !== 1 && userKey.expiresAt < Date.now()) {
-      return socket.destroy();
-    }
+    if (!userKey) return socket.destroy();
+    if (userKey.id !== 1 && userKey.expiresAt < Date.now()) return socket.destroy();
 
     let i = 17 + 1 + chunk[17] + 1;
     const port = chunk.readUInt16BE(i);
     i += 2;
     const ATYP = chunk[i++];
     let host = '';
-
     if (ATYP === 1) {
       host = chunk.slice(i, i + 4).join('.');
       i += 4;
