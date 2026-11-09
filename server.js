@@ -132,7 +132,6 @@ const server = http.createServer((req, res) => {
 
     if (isAdmin) {
       const keyRows = KEYS.map(k => {
-        const vlessLink = `vless://${k.uuid}@${host}:443?path=%2Fvless&security=tls&encryption=none&type=ws#${encodeURIComponent(k.name)}`;
         let timeStatus = '';
         let actionButtons = '-';
 
@@ -168,16 +167,12 @@ const server = http.createServer((req, res) => {
 
         return `
           <tr style="border-bottom: 1px solid #333;">
-            <td style="padding:10px; vertical-align:middle;">${k.id}</td>
-            <td style="padding:10px; font-weight:bold; vertical-align:middle; white-space:nowrap;">${k.name}</td>
-            <td style="padding:10px; vertical-align:middle;">${timeStatus}</td>
-            <td style="padding:10px; vertical-align:middle;">${actionButtons}</td>
-            <td style="padding:10px; vertical-align:middle;">
-              <div style="display:flex; gap:6px; align-items:center;">
-                <input type="text" id="key-${k.id}" value="${vlessLink}" readonly style="width:160px; background:#222; color:#fff; border:1px solid #444; padding:6px; border-radius:4px; font-size:11px;" onclick="this.select();">
-                <button onclick="copyKey('key-${k.id}', this)" style="background:#28a745; color:#fff; border:none; padding:6px 10px; border-radius:4px; cursor:pointer; font-weight:bold; font-size:11px; white-space:nowrap;">📋 คัดลอก</button>
-                <a href="/download-config?id=${k.id}" style="background:#17a2b8; color:#fff; padding:6px 10px; border-radius:4px; text-decoration:none; font-weight:bold; font-size:11px; white-space:nowrap;">📥 โหลด Base64</a>
-              </div>
+            <td style="padding:12px; vertical-align:middle;">${k.id}</td>
+            <td style="padding:12px; font-weight:bold; vertical-align:middle; white-space:nowrap;">${k.name}</td>
+            <td style="padding:12px; vertical-align:middle;">${timeStatus}</td>
+            <td style="padding:12px; vertical-align:middle;">${actionButtons}</td>
+            <td style="padding:12px; vertical-align:middle; text-align:center;">
+              <a href="/download-config?id=${k.id}" style="background:#17a2b8; color:#fff; padding:7px 14px; border-radius:4px; text-decoration:none; font-weight:bold; font-size:12px; display:inline-block;">📥 ดาวน์โหลดไฟล์ Base64 .txt</a>
             </td>
           </tr>
         `;
@@ -207,19 +202,6 @@ const server = http.createServer((req, res) => {
               const days = inputVal * multiplier;
               window.location.href = '/update-time?id=' + id + '&days=' + days;
             }
-            function copyKey(id, btn) {
-              const input = document.getElementById(id);
-              input.select();
-              navigator.clipboard.writeText(input.value).then(() => {
-                const orig = btn.innerHTML;
-                btn.innerHTML = '✓ คัดลอก';
-                btn.style.background = '#17a2b8';
-                setTimeout(() => {
-                  btn.innerHTML = orig;
-                  btn.style.background = '#28a745';
-                }, 2000);
-              });
-            }
           </script>
         </head>
         <body style="font-family:sans-serif; padding:15px; background:#121212; color:#eee; margin:0;">
@@ -229,14 +211,14 @@ const server = http.createServer((req, res) => {
           <p>ยินดีต้อนรับป๋า (Admin) | เซิร์ฟเวอร์: <b>${host}</b></p>
           <hr style="border:1px solid #333;">
           <div style="overflow-x:auto;">
-            <table style="width:100%; border-collapse:collapse; text-align:left; min-width:900px;">
+            <table style="width:100%; border-collapse:collapse; text-align:left; min-width:750px;">
               <thead>
                 <tr style="background:#222; color:#aaa;">
                   <th style="padding:10px;">#</th>
                   <th style="padding:10px;">ชื่อยูสเซอร์</th>
                   <th style="padding:10px;">สถานะเวลา</th>
                   <th style="padding:10px;">จัดการเวลา</th>
-                  <th style="padding:10px;">ลิงก์ / ดาวน์โหลดคอนฟิก Base64</th>
+                  <th style="padding:10px; text-align:center;">ดาวน์โหลดคอนฟิก Base64</th>
                 </tr>
               </thead>
               <tbody>${keyRows}</tbody>
