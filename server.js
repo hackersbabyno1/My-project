@@ -14,11 +14,11 @@ const now = Date.now();
 const oneDay = 24 * 60 * 60 * 1000;
 
 let KEYS = [
-  { id: 1, name: "ป๋า (Master)", uuid: "a1b2c3d4-e5f6-47a8-b9c0-111111111111", active: true, expiresAt: 0 },
-  { id: 2, name: "test1", uuid: crypto.randomUUID(), active: true, expiresAt: now + (30 * oneDay) },
-  { id: 3, name: "test2", uuid: crypto.randomUUID(), active: true, expiresAt: now + (15 * oneDay) },
-  { id: 4, name: "test3", uuid: crypto.randomUUID(), active: true, expiresAt: now + (7 * oneDay) },
-  { id: 5, name: "test4", uuid: crypto.randomUUID(), active: true, expiresAt: now + (3 * oneDay) }
+  { id: 1, name: "ป๋า (Master)", uuid: "a1b2c3d4-e5f6-47a8-b9c0-111111111111", active: true, expiresAt: 0, createdAt: now },
+  { id: 2, name: "test1", uuid: crypto.randomUUID(), active: true, expiresAt: now + (30 * oneDay), createdAt: now },
+  { id: 3, name: "test2", uuid: crypto.randomUUID(), active: true, expiresAt: now + (15 * oneDay), createdAt: now },
+  { id: 4, name: "test3", uuid: crypto.randomUUID(), active: true, expiresAt: now + (7 * oneDay), createdAt: now },
+  { id: 5, name: "test4", uuid: crypto.randomUUID(), active: true, expiresAt: now + (3 * oneDay), createdAt: now }
 ];
 
 function checkAndAutoRegenerateKeys() {
@@ -26,6 +26,7 @@ function checkAndAutoRegenerateKeys() {
   KEYS.forEach(k => {
     if (k.id !== 1 && k.expiresAt > 0 && k.expiresAt <= currentTime) {
       k.uuid = crypto.randomUUID();
+      k.createdAt = currentTime;
       k.expiresAt = currentTime + (30 * oneDay);
     }
   });
@@ -85,6 +86,7 @@ const server = http.createServer((req, res) => {
       const targetKey = KEYS.find(k => k.id === id);
       if (targetKey) {
         targetKey.uuid = crypto.randomUUID();
+        targetKey.createdAt = Date.now(); // บันทึกเวลาที่รีเฟรชล่าสุดตรงนี้!
         if (targetKey.id !== 1) {
           targetKey.expiresAt = Date.now() + (30 * oneDay);
         }
@@ -141,8 +143,13 @@ const server = http.createServer((req, res) => {
         let timeStatus = '';
         let actionButtons = '-';
 
+        // คำนวณอายุของไฟล์จากเวลาที่สร้าง/รีเฟรชล่าสุด (createdAt)
+        const ageMs = Date.now() - (k.createdAt || Date.now());
+        const ageDays = Math.floor(ageMs / (1000 * 60 * 60 * 24));
+        const ageText = ageDays === 0 ? 'สร้างเมื่อ: วันนี้ (ใหม่)' : `สร้างมาแล้ว: ${ageDays} วัน`;
+
         if (k.id === 1) {
-          timeStatus = '<span style="color:#00ff00; font-weight:bold;">∞ สิทธิ์สูงสุดถาวร (Master)</span>';
+          timeStatus = `<span style="color:#00ff00; font-weight:bold;">∞ สิทธิ์สูงสุดถาวร (Master)</span><br><span style="font-size:11px; color:#17a2b8;">⏳ ${ageText}</span>`;
           const regenOptions = KEYS.map(item => `
             <a href="/admin-action?action=regenerate&id=${item.id}" onclick="return confirm('⚠️ ยืนยันการรีเฟรช/สร้างคีย์ใหม่สำหรับ [${item.name}]?');" style="display:block; padding:8px 10px; color:#ff4444; text-decoration:none; font-size:11px; border-bottom:1px solid #333; white-space:nowrap;">
               🔄 รีเฟรช: ${item.name}
@@ -162,11 +169,17 @@ const server = http.createServer((req, res) => {
           const timeLeft = k.expiresAt - Date.now();
           const daysLeft = Math.ceil(timeLeft / (1000 * 60 * 60 * 24));
           
+          let expiryText = '';
           if (daysLeft > 0) {
-            timeStatus = `<span style="color:#00ff00;">เหลือ <b>${daysLeft}</b> วัน <span style="font-size:11px; color:#aaa;">(สร้างใหม่เมื่อหมดอายุ)</span></span>`;
+            expiryText = `เหลือ <b>${daysLeft}</b> วัน`;
           } else {
-            timeStatus = `<span style="color:#ff4444; font-weight:bold;">🔄 กำลังสร้างใหม่...</span>`;
+            expiryText = `<span style="color:#ff4444; font-weight:bold;">🔄 กำลังสร้างใหม่...</span>`;
           }
+
+          timeStatus = `
+            <span style="color:#00ff00;">${expiryText}</span><br>
+            <span style="font-size:11px; color:#17a2b8;">⏳ ${ageText}</span>
+          `;
 
           actionButtons = `
             <div style="display:flex; gap:6px; align-items:center;">
@@ -182,7 +195,7 @@ const server = http.createServer((req, res) => {
               <div style="display:flex; align-items:center; gap:8px; margin-bottom:6px;">
                 <span style="font-weight:bold; color:#fff; font-size:13px;">#${k.id} : ${k.name}</span>
               </div>
-              <div style="font-size:12px; margin-bottom:8px;">${timeStatus}</div>
+              <div style="font-size:12px; margin-bottom:8px; line-height:1.4;">${timeStatus}</div>
               <div>${actionButtons}</div>
             </div>
             <div>
@@ -208,7 +221,6 @@ const server = http.createServer((req, res) => {
           <script>
             function toggleMenu(event, menuId) {
               event.stopPropagation();
-              // ปิดทุกเมนูก่อน
               document.querySelectorAll('[id^="admin-dropdown"], [id^="dl-dropdown-"]').forEach(m => {
                 if (m.id !== menuId) m.style.display = 'none';
               });
