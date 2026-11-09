@@ -1,5 +1,6 @@
 const http = require('http');
 const net = require('net');
+const crypto = require('crypto');
 const PORT = process.env.PORT || 3000;
 
 // === 1. ตั้งค่า Master Admin ===
@@ -10,21 +11,36 @@ function checkPassword(pass) {
   return input === expected;
 }
 
-// === 2. ฐานข้อมูลคีย์สมาชิก (Key 1 ถาวร, Key 2+ ปรับเพิ่ม/ลดเวลาได้อิสระ) ===
+// === 2. ฐานข้อมูลคีย์สมาชิก (Key 1 แอดมินหลักถาวร, Key 2+ อัป 30 วันและหมุนเวียนอัตโนมัติเมื่อหมดอายุ) ===
 const now = Date.now();
 const oneDay = 24 * 60 * 60 * 1000;
 
 let KEYS = [
   { id: 1, name: "ป๋า (Master)", uuid: "a1b2c3d4-e5f6-47a8-b9c0-111111111111", active: true, expiresAt: 0 },
-  { id: 2, name: "ธัญเทพ (ลูกชาย)", uuid: "a1b2c3d4-e5f6-47a8-b9c0-222222222222", active: true, expiresAt: now + (30 * oneDay) },
-  { id: 3, name: "test1", uuid: "a1b2c3d4-e5f6-47a8-b9c0-333333333333", active: true, expiresAt: now + (15 * oneDay) },
-  { id: 4, name: "test2", uuid: "a1b2c3d4-e5f6-47a8-b9c0-444444444444", active: true, expiresAt: now + (7 * oneDay) },
-  { id: 5, name: "test3", uuid: "a1b2c3d4-e5f6-47a8-b9c0-555555555555", active: true, expiresAt: now + (3 * oneDay) }
+  { id: 2, name: "ธัญเทพ (ลูกชาย)", uuid: crypto.randomUUID(), active: true, expiresAt: now + (30 * oneDay) },
+  { id: 3, name: "test1", uuid: crypto.randomUUID(), active: true, expiresAt: now + (15 * oneDay) },
+  { id: 4, name: "test2", uuid: crypto.randomUUID(), active: true, expiresAt: now + (7 * oneDay) },
+  { id: 5, name: "test3", uuid: crypto.randomUUID(), active: true, expiresAt: now + (3 * oneDay) }
 ];
+
+// ฟังก์ชันตรวจสอบและอัปเดตสถานะคีย์ (ถ้าหมดอายุ ลบตัวเก่า สร้างใหม่ทันที)
+function checkAndAutoRegenerateKeys() {
+  const currentTime = Date.now();
+  KEYS.forEach(k => {
+    if (k.id !== 1 && k.expiresAt > 0 && k.expiresAt <= currentTime) {
+      // หมดเวลาแล้ว! ลบและสร้าง UUID ใหม่ พร้อมรีเซ็ตเวลาให้ 30 วันอัตโนมัติ (หรือปรับตามต้องการ)
+      k.uuid = crypto.randomUUID();
+      k.expiresAt = currentTime + (30 * oneDay);
+    }
+  });
+}
 
 const server = http.createServer((req, res) => {
   const urlObj = new URL(req.url, `http://${req.headers.host || 'localhost'}`);
   const pathname = urlObj.pathname;
+
+  // รันเช็กอัปเดตวันหมดอายุทุกครั้งที่มีการเรียกใช้งานเว็บ
+  checkAndAutoRegenerateKeys();
 
   // 1. เส้นทาง Healthz เช็ก Cron
   if (pathname === '/healthz' || pathname === '/cron') {
@@ -32,17 +48,36 @@ const server = http.createServer((req, res) => {
     return res.end(JSON.stringify({ status: "OK", timestamp: new Date() }));
   }
 
-  // 2. เส้นทางจัดการเพิ่ม/ลดเวลา (รองรับระบุจำนวนวันตามใจชอบ)
-  if (pathname === '/update-time') {
-    const auth = req.headers['authorization'];
-    let isAdmin = false;
-    if (auth) {
-      try {
-        const [user, pass] = Buffer.from(auth.split(' ')[1], 'base64').toString().split(':');
-        if (user === ADMIN_USER && checkPassword(pass)) isAdmin = true;
-      } catch (e) {}
+  // ฟังก์ชันตรวจสอบสิทธิ์แอดมิน
+  const auth = req.headers['authorization'];
+  let isAdmin = false;
+  if (auth) {
+    try {
+      const [user, pass] = Buffer.from(auth.split(' ')[1], 'base64').toString().split(':');
+      if (user === ADMIN_USER && checkPassword(pass)) isAdmin = true;
+    } catch (e) {}
+  }
+
+  // 2. เส้นทางจัดการคำสั่งพิเศษสำหรับ Key 1 (รีเฟรช / สร้าง UUID ใหม่)
+  if (pathname === '/admin-action') {
+    if (!isAdmin) {
+      res.writeHead(401, { 'WWW-Authenticate': 'Basic realm="Admin Area"' });
+      return res.end('Unauthorized');
     }
 
+    const action = urlObj.searchParams.get('action');
+    const adminKey = KEYS.find(k => k.id === 1);
+
+    if (adminKey && action === 'regenerate') {
+      adminKey.uuid = crypto.randomUUID();
+    }
+
+    res.writeHead(302, { 'Location': '/' });
+    return res.end();
+  }
+
+  // 3. เส้นทางจัดการเพิ่ม/ลดเวลาคีย์ลูกข่าย
+  if (pathname === '/update-time') {
     if (!isAdmin) {
       res.writeHead(401, { 'WWW-Authenticate': 'Basic realm="Admin Area"' });
       return res.end('Unauthorized');
@@ -52,7 +87,7 @@ const server = http.createServer((req, res) => {
     const days = parseInt(urlObj.searchParams.get('days') || 0);
 
     const targetKey = KEYS.find(k => k.id === id);
-    if (targetKey && targetKey.id !== 1) { // ห้ามแก้คีย์แอดมิน (Key 1)
+    if (targetKey && targetKey.id !== 1) {
       const currentExpiry = targetKey.expiresAt < Date.now() ? Date.now() : targetKey.expiresAt;
       targetKey.expiresAt = currentExpiry + (days * oneDay);
     }
@@ -61,7 +96,7 @@ const server = http.createServer((req, res) => {
     return res.end();
   }
 
-  // 3. เส้นทางล้างเซสชัน /logout
+  // 4. เส้นทางล้างเซสชัน /logout
   if (pathname === '/logout') {
     res.writeHead(401, {
       'WWW-Authenticate': 'Basic realm="Admin Area"',
@@ -80,18 +115,6 @@ const server = http.createServer((req, res) => {
     `);
   }
 
-  // 4. ตรวจสอบการล็อกอินแอดมินผ่าน Basic Auth
-  const auth = req.headers['authorization'];
-  let isAdmin = false;
-  if (auth) {
-    try {
-      const [user, pass] = Buffer.from(auth.split(' ')[1], 'base64').toString().split(':');
-      if (user === ADMIN_USER && checkPassword(pass)) {
-        isAdmin = true;
-      }
-    } catch (e) {}
-  }
-
   // 5. หน้าแรก (Decoy Store หรือ Full Control Panel เมื่อล็อกอินแอดมิน)
   if (pathname === '/') {
     const host = req.headers.host || "my-project-websocket.onrender.com";
@@ -104,22 +127,29 @@ const server = http.createServer((req, res) => {
         let actionButtons = '-';
 
         if (k.id === 1) {
-          timeStatus = '<span style="color:#00ff00; font-weight:bold;">∞ ไม่มีวันหมดอายุ (Master)</span>';
-          actionButtons = '<span style="color:#666; font-size:12px;">(สิทธิ์สูงสุดถาวร)</span>';
+          timeStatus = '<span style="color:#00ff00; font-weight:bold;">∞ สิทธิ์สูงสุดถาวร (Master)</span>';
+          actionButtons = `
+            <div style="position:relative; display:inline-block;">
+              <button onclick="toggleMenu()" style="background:#ffc107; color:#000; border:none; padding:6px 12px; border-radius:4px; cursor:pointer; font-weight:bold; font-size:12px;">⚙️ เมนูป้องกัน (จัดการคีย์)</button>
+              <div id="admin-dropdown" style="display:none; position:absolute; right:0; background:#222; border:1px solid #444; border-radius:4px; box-shadow:0 4px 10px rgba(0,0,0,0.5); z-index:10; min-width:160px; margin-top:5px;">
+                <a href="/admin-action?action=refresh" style="display:block; padding:10px; color:#fff; text-decoration:none; font-size:12px; border-bottom:1px solid #333;">🔄 รีเฟรชสถานะคีย์</a>
+                <a href="/admin-action?action=regenerate" onclick="return confirm('⚠️ ยืนยันการสร้างคีย์ใหม่?');" style="display:block; padding:10px; color:#ff4444; text-decoration:none; font-size:12px; font-weight:bold;">✨ สร้างคีย์ใหม่ (Regenerate)</a>
+              </div>
+            </div>
+          `;
         } else {
           const timeLeft = k.expiresAt - Date.now();
           const daysLeft = Math.ceil(timeLeft / (1000 * 60 * 60 * 24));
           
           if (daysLeft > 0) {
-            timeStatus = `<span style="color:#00ff00;">เหลือเวลาอีก <b>${daysLeft}</b> วัน</span>`;
+            timeStatus = `<span style="color:#00ff00;">เหลือเวลาอีก <b>${daysLeft}</b> วัน (ระบบจะสร้างใหม่ทันทีเมื่อหมดอายุ)</span>`;
           } else {
-            timeStatus = `<span style="color:#ff4444; font-weight:bold;">❌ หมดอายุแล้ว</span>`;
+            timeStatus = `<span style="color:#ff4444; font-weight:bold;">🔄 กำลังสร้างคีย์ใหม่ให้อัตโนมัติ...</span>`;
           }
 
-          // ช่องกรอกจำนวนวันแบบอิสระ (1 วัน, 2 วัน, กี่วันก็ได้) + ปุ่มกดเพิ่ม/ลด
           actionButtons = `
             <div style="display:flex; gap:5px; align-items:center; flex-wrap:wrap;">
-              <input type="number" id="custom-days-${k.id}" value="1" min="1" style="width:45px; background:#222; color:#fff; border:1px solid #444; padding:4px; text-align:center; border-radius:3px; font-size:12px;">
+              <input type="number" id="custom-days-${k.id}" value="1" min="1" style="width:40px; background:#222; color:#fff; border:1px solid #444; padding:4px; text-align:center; border-radius:3px; font-size:12px;">
               <button onclick="updateTime(${k.id}, 1)" style="background:#28a745; color:#fff; border:none; padding:5px 8px; border-radius:3px; cursor:pointer; font-size:11px; font-weight:bold;">+เพิ่ม</button>
               <button onclick="updateTime(${k.id}, -1)" style="background:#dc3545; color:#fff; border:none; padding:5px 8px; border-radius:3px; cursor:pointer; font-size:11px; font-weight:bold;">-ลด</button>
             </div>
@@ -150,6 +180,10 @@ const server = http.createServer((req, res) => {
           <title>Full Control - Admin Panel</title>
           <meta name="viewport" content="width=device-width, initial-scale=1.0">
           <script>
+            function toggleMenu() {
+              const menu = document.getElementById('admin-dropdown');
+              menu.style.display = menu.style.display === 'block' ? 'none' : 'block';
+            }
             function updateTime(id, multiplier) {
               const inputVal = parseInt(document.getElementById('custom-days-' + id).value) || 1;
               const days = inputVal * multiplier;
@@ -173,7 +207,7 @@ const server = http.createServer((req, res) => {
         </head>
         <body style="font-family:sans-serif; padding:15px; background:#121212; color:#eee;">
           <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px; margin-bottom:10px;">
-            <h2>⚡ Full Control: จัดการวันเวลาอุโมงค์ (VLESS Keys)</h2>
+            <h2>⚡ Full Control: ระบบหมุนเวียนคีย์อัตโนมัติ</h2>
             <div style="display:flex; gap:8px;">
               <a href="/logout" style="background:#dc3545; color:#fff; padding:8px 15px; text-decoration:none; border-radius:5px; font-size:14px;">🔴 ออกจากระบบ</a>
             </div>
@@ -187,7 +221,7 @@ const server = http.createServer((req, res) => {
                   <th style="padding:10px;">#</th>
                   <th style="padding:10px;">ชื่อยูสเซอร์</th>
                   <th style="padding:10px;">สถานะเวลา</th>
-                  <th style="padding:10px;">กำหนดเวลา (ระบุจำนวนวันได้ตามใจ)</th>
+                  <th style="padding:10px;">จัดการเวลา / เมนูป้องกัน</th>
                   <th style="padding:10px;">ลิงก์ VLESS (คัดลอกไปใช้งาน)</th>
                 </tr>
               </thead>
@@ -248,12 +282,15 @@ const server = http.createServer((req, res) => {
   res.end('Not Found');
 });
 
-// === 3. เครื่องยนต์ VLESS WebSocket Engine (ตรวจสอบวันหมดอายุ) ===
+// === 3. เครื่องยนต์ VLESS WebSocket Engine (ตรวจสอบและหมุนเวียนคีย์อัตโนมัติ) ===
 server.on('upgrade', (req, socket, head) => {
   if (req.url !== '/vless') {
     socket.destroy();
     return;
   }
+
+  // ตรวจสอบเช็กวันหมดอายุก่อนเชื่อมต่ออุโมงค์
+  checkAndAutoRegenerateKeys();
 
   socket.write(
     'HTTP/1.1 101 Switching Protocols\r\n' +
@@ -276,6 +313,7 @@ server.on('upgrade', (req, socket, head) => {
       return socket.destroy();
     }
 
+    // หากหมดอายุแล้ว ตัดการเชื่อมต่อทันที (ระบบจะทำการสร้าง UUID ใหม่ให้รอบถัดไป)
     if (userKey.id !== 1 && userKey.expiresAt < Date.now()) {
       return socket.destroy();
     }
