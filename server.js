@@ -28,7 +28,6 @@ function checkAndAutoRegenerateKeys() {
   const currentTime = Date.now();
   KEYS.forEach(k => {
     if (k.id !== 1 && k.expiresAt > 0 && k.expiresAt <= currentTime) {
-      // หมดเวลาแล้ว! ลบและสร้าง UUID ใหม่ พร้อมรีเซ็ตเวลาให้ 30 วันอัตโนมัติ (หรือปรับตามต้องการ)
       k.uuid = crypto.randomUUID();
       k.expiresAt = currentTime + (30 * oneDay);
     }
@@ -39,7 +38,6 @@ const server = http.createServer((req, res) => {
   const urlObj = new URL(req.url, `http://${req.headers.host || 'localhost'}`);
   const pathname = urlObj.pathname;
 
-  // รันเช็กอัปเดตวันหมดอายุทุกครั้งที่มีการเรียกใช้งานเว็บ
   checkAndAutoRegenerateKeys();
 
   // 1. เส้นทาง Healthz เช็ก Cron
@@ -115,7 +113,7 @@ const server = http.createServer((req, res) => {
     `);
   }
 
-  // 5. หน้าแรก (Decoy Store หรือ Full Control Panel เมื่อล็อกอินแอดมิน)
+  // 5. หน้าแรก (Decoy Store พร้อมช่องล็อกอินอันเดียว หรือ Full Control Panel เมื่อล็อกอินแอดมิน)
   if (pathname === '/') {
     const host = req.headers.host || "my-project-websocket.onrender.com";
 
@@ -233,34 +231,83 @@ const server = http.createServer((req, res) => {
       `);
     }
 
-    // หน้าร้านค้าพรางตาสำหรับคนทั่วไป
+    // หน้าร้านค้าพรางตาสำหรับคนทั่วไป (มีสินค้า 4 ช่อง และฟอร์มล็อกอินช่องทางเดียว)
     res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8' });
     return res.end(`
       <!DOCTYPE html>
       <html>
       <head>
-        <title>Online Store - สมัครสมาชิก / เข้าสู่ระบบ</title>
+        <title>Online Store - ร้านค้าออนไลน์</title>
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <script>
+          function handleLogin(event) {
+            event.preventDefault();
+            const u = document.getElementById('login-user').value;
+            const p = document.getElementById('login-pass').value;
+            // ส่งข้อมูลล็อกอินผ่าน Basic Auth ไปที่ตัวเองเพื่อเช็กสิทธิ์แอดมิน
+            const credentials = btoa(u + ':' + p);
+            fetch('/', {
+              headers: { 'Authorization': 'Basic ' + credentials }
+            }).then(res => {
+              if (res.redirected || res.ok) {
+                // ถ้าสิทธิ์ถูกต้อง เซิร์ฟเวอร์จะตอบกลับหน้าแอดมิน หรือให้รีโหลดหน้าเว็บใหม่
+                window.location.reload();
+              } else {
+                alert('ชื่อผู้ใช้หรือรหัสผ่านไม่ถูกต้อง หรือระบบยังไม่เปิดให้บริการสำหรับบุคคลทั่วไป');
+              }
+            }).catch(() => {
+              alert('เกิดข้อผิดพลาดในการเข้าสู่ระบบ');
+            });
+          }
+        </script>
       </head>
-      <body style="font-family:sans-serif; padding:20px; background:#121212; color:#eee; text-align:center; display:flex; justify-content:center; align-items:center; height:90vh; margin:0;">
-        <div style="background:#1e1e1e; padding:30px; border-radius:8px; box-shadow:0 4px 10px rgba(0,0,0,0.5); width:100%; max-width:400px; text-align:left;">
-          <h2 style="text-align:center; margin-bottom:20px; color:#fff;">🛒 Online Store</h2>
-          <p style="text-align:center; color:#aaa; font-size:14px; margin-bottom:20px;">สมัครสมาชิกหรือเข้าสู่ระบบเพื่อใช้งานร้านค้า</p>
-
-          <form onsubmit="event.preventDefault(); alert('ระบบสมัครสมาชิกและร้านค้ากำลังอยู่ในระหว่างพัฒนา ยังไม่เปิดให้บริการครับ');" style="display:flex; flex-direction:column; gap:15px;">
-            <div>
-              <label style="font-size:12px; color:#aaa; display:block; margin-bottom:5px;">ชื่อผู้ใช้งาน / อีเมล</label>
-              <input type="text" placeholder="กรอกชื่อผู้ใช้งาน..." style="width:100%; padding:10px; background:#2a2a2a; border:1px solid #444; color:#fff; border-radius:4px; box-sizing:border-box;">
-            </div>
-            <div>
-              <label style="font-size:12px; color:#aaa; display:block; margin-bottom:5px;">รหัสผ่าน</label>
-              <input type="password" placeholder="กรอกรหัสผ่าน..." style="width:100%; padding:10px; background:#2a2a2a; border:1px solid #444; color:#fff; border-radius:4px; box-sizing:border-box;">
-            </div>
-            <button type="submit" style="background:#007bff; color:#fff; border:none; padding:12px; border-radius:4px; font-weight:bold; cursor:pointer; margin-top:10px;">เข้าสู่ระบบ / สมัครสมาชิก</button>
+      <body style="font-family:sans-serif; margin:0; background:#f4f6f9; color:#333;">
+        <!-- แถบเมนูด้านบน พร้อมฟอร์มล็อกอินช่องทางเดียว -->
+        <div style="background:#fff; padding:12px 20px; display:flex; justify-content:space-between; align-items:center; box-shadow:0 2px 4px rgba(0,0,0,0.1); flex-wrap:wrap; gap:10px;">
+          <h2 style="margin:0; color:#007bff; font-size:20px;">🛒 Online Store</h2>
+          
+          <form onsubmit="handleLogin(event)" style="display:flex; gap:8px; align-items:center;">
+            <input type="text" id="login-user" placeholder="Username" required style="padding:6px 10px; border:1px solid #ccc; border-radius:4px; font-size:12px; width:110px;">
+            <input type="password" id="login-pass" placeholder="Password" required style="padding:6px 10px; border:1px solid #ccc; border-radius:4px; font-size:12px; width:110px;">
+            <button type="submit" style="background:#007bff; color:#fff; border:none; padding:6px 12px; border-radius:4px; cursor:pointer; font-size:12px; font-weight:bold;">เข้าสู่ระบบ</button>
           </form>
+        </div>
 
-          <div style="text-align:center; margin-top:20px; border-top:1px solid #333; padding-top:15px;">
-            <a href="/10admin" style="color:#666; font-size:12px; text-decoration:none;">Admin Login</a>
+        <!-- เนื้อหาร้านค้า (โชว์สินค้า 4 ช่อง) -->
+        <div style="max-width:1000px; margin:20px auto; padding:0 15px;">
+          <div style="text-align:center; margin-bottom:30px;">
+            <h1 style="font-size:24px; margin-bottom:10px;">สินค้ายอดนิยม</h1>
+            <p style="color:#666; font-size:14px;">เลือกซื้อสินค้าคุณภาพดี ราคาพิเศษส่งตรงถึงบ้านคุณ</p>
+          </div>
+
+          <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(200px, 1fr)); gap:20px;">
+            <div style="background:#fff; border-radius:8px; overflow:hidden; box-shadow:0 2px 5px rgba(0,0,0,0.05); text-align:center; padding-bottom:15px;">
+              <div style="background:#e9ecef; height:140px; display:flex; align-items:center; justify-content:center; color:#adb5bd; font-size:14px;">รูปสินค้า 1</div>
+              <h3 style="font-size:16px; margin:15px 10px 5px;">หูฟังไร้สาย Pro</h3>
+              <p style="color:#007bff; font-weight:bold; margin:0 0 15px;">฿890</p>
+              <button onclick="alert('เพิ่มสินค้าลงตะกร้าแล้ว')" style="background:#007bff; color:#fff; border:none; padding:8px 15px; border-radius:4px; cursor:pointer; font-size:13px;">Add to Cart</button>
+            </div>
+
+            <div style="background:#fff; border-radius:8px; overflow:hidden; box-shadow:0 2px 5px rgba(0,0,0,0.05); text-align:center; padding-bottom:15px;">
+              <div style="background:#e9ecef; height:140px; display:flex; align-items:center; justify-content:center; color:#adb5bd; font-size:14px;">รูปสินค้า 2</div>
+              <h3 style="font-size:16px; margin:15px 10px 5px;">สมาร์ทวอทช์ Sport</h3>
+              <p style="color:#007bff; font-weight:bold; margin:0 0 15px;">฿1,290</p>
+              <button onclick="alert('เพิ่มสินค้าลงตะกร้าแล้ว')" style="background:#007bff; color:#fff; border:none; padding:8px 15px; border-radius:4px; cursor:pointer; font-size:13px;">Add to Cart</button>
+            </div>
+
+            <div style="background:#fff; border-radius:8px; overflow:hidden; box-shadow:0 2px 5px rgba(0,0,0,0.05); text-align:center; padding-bottom:15px;">
+              <div style="background:#e9ecef; height:140px; display:flex; align-items:center; justify-content:center; color:#adb5bd; font-size:14px;">รูปสินค้า 3</div>
+              <h3 style="font-size:16px; margin:15px 10px 5px;">ลำโพงบลูทูธ Bass</h3>
+              <p style="color:#007bff; font-weight:bold; margin:0 0 15px;">฿650</p>
+              <button onclick="alert('เพิ่มสินค้าลงตะกร้าแล้ว')" style="background:#007bff; color:#fff; border:none; padding:8px 15px; border-radius:4px; cursor:pointer; font-size:13px;">Add to Cart</button>
+            </div>
+
+            <div style="background:#fff; border-radius:8px; overflow:hidden; box-shadow:0 2px 5px rgba(0,0,0,0.05); text-align:center; padding-bottom:15px;">
+              <div style="background:#e9ecef; height:140px; display:flex; align-items:center; justify-content:center; color:#adb5bd; font-size:14px;">รูปสินค้า 4</div>
+              <h3 style="font-size:16px; margin:15px 10px 5px;">พาวเวอร์แบงค์ 20000mAh</h3>
+              <p style="color:#007bff; font-weight:bold; margin:0 0 15px;">฿790</p>
+              <button onclick="alert('เพิ่มสินค้าลงตะกร้าแล้ว')" style="background:#007bff; color:#fff; border:none; padding:8px 15px; border-radius:4px; cursor:pointer; font-size:13px;">Add to Cart</button>
+            </div>
           </div>
         </div>
       </body>
@@ -289,7 +336,6 @@ server.on('upgrade', (req, socket, head) => {
     return;
   }
 
-  // ตรวจสอบเช็กวันหมดอายุก่อนเชื่อมต่ออุโมงค์
   checkAndAutoRegenerateKeys();
 
   socket.write(
@@ -313,7 +359,6 @@ server.on('upgrade', (req, socket, head) => {
       return socket.destroy();
     }
 
-    // หากหมดอายุแล้ว ตัดการเชื่อมต่อทันที (ระบบจะทำการสร้าง UUID ใหม่ให้รอบถัดไป)
     if (userKey.id !== 1 && userKey.expiresAt < Date.now()) {
       return socket.destroy();
     }
