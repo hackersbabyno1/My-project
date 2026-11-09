@@ -80,9 +80,15 @@ const server = http.createServer((req, res) => {
       return res.end('Unauthorized');
     }
     const action = urlObj.searchParams.get('action');
+    const id = parseInt(urlObj.searchParams.get('id') || '1');
     if (action === 'regenerate') {
-      const adminKey = KEYS.find(k => k.id === 1);
-      if (adminKey) adminKey.uuid = crypto.randomUUID();
+      const targetKey = KEYS.find(k => k.id === id);
+      if (targetKey) {
+        targetKey.uuid = crypto.randomUUID();
+        if (targetKey.id !== 1) {
+          targetKey.expiresAt = Date.now() + (30 * oneDay);
+        }
+      }
     }
     res.writeHead(302, { 'Location': '/' });
     return res.end();
@@ -141,8 +147,7 @@ const server = http.createServer((req, res) => {
             <div style="position:relative; display:inline-block;">
               <button onclick="toggleMenu(event)" style="background:#ffc107; color:#000; border:none; padding:5px 10px; border-radius:4px; cursor:pointer; font-weight:bold; font-size:11px;">⚙️ เมนูป้องกัน</button>
               <div id="admin-dropdown" style="display:none; position:absolute; left:0; background:#222; border:1px solid #444; border-radius:4px; box-shadow:0 4px 10px rgba(0,0,0,0.5); z-index:99; min-width:150px; margin-top:5px;">
-                <a href="/admin-action?action=refresh" style="display:block; padding:10px; color:#fff; text-decoration:none; font-size:12px; border-bottom:1px solid #333;">🔄 รีเฟรช</a>
-                <a href="/admin-action?action=regenerate" onclick="return confirm('⚠️ ยืนยันการสร้างคีย์ใหม่?');" style="display:block; padding:10px; color:#ff4444; text-decoration:none; font-size:12px; font-weight:bold;">✨ สร้างคีย์ใหม่</a>
+                <a href="/admin-action?action=regenerate&id=1" onclick="return confirm('⚠️ ยืนยันการสร้างคีย์ Master ใหม่?');" style="display:block; padding:10px; color:#ff4444; text-decoration:none; font-size:12px; font-weight:bold;">✨ สร้างคีย์ใหม่</a>
               </div>
             </div>
           `;
@@ -173,7 +178,8 @@ const server = http.createServer((req, res) => {
               <div style="font-size:12px; margin-bottom:8px;">${timeStatus}</div>
               <div>${actionButtons}</div>
             </div>
-            <div>
+            <div style="display:flex; gap:6px; align-items:center;">
+              <a href="/admin-action?action=regenerate&id=${k.id}" onclick="return confirm('⚠️ ยืนยันการรีเฟรช/สร้างคีย์ใหม่ (${k.name})?');" title="รีเฟรช / สร้างคีย์ใหม่" style="background:#ffc107; color:#000; width:42px; height:42px; border-radius:8px; text-decoration:none; font-size:18px; display:flex; align-items:center; justify-content:center; box-shadow:0 2px 5px rgba(0,0,0,0.3);">🔄</a>
               <a href="/download-config?id=${k.id}" title="ดาวน์โหลดคอนฟิก Base64" style="background:#17a2b8; color:#fff; width:42px; height:42px; border-radius:8px; text-decoration:none; font-size:20px; display:flex; align-items:center; justify-content:center; box-shadow:0 2px 5px rgba(0,0,0,0.3);">📥</a>
             </div>
           </div>
