@@ -70,7 +70,7 @@ const server = http.createServer((req, res) => {
       res.writeHead(302, { 'Set-Cookie': `admin_auth=true; Path=/; HttpOnly`, 'Location': '/' });
       return res.end();
     }
-    res.writeHead(302, { 'Location': '/?error=1' });
+    res.writeHead(302, { 'Location': '/' });
     return res.end();
   }
 
@@ -79,7 +79,8 @@ const server = http.createServer((req, res) => {
       res.writeHead(401, { 'WWW-Authenticate': 'Basic realm="Admin Area"' });
       return res.end('Unauthorized');
     }
-    if (urlObj.searchParams.get('action') === 'regenerate') {
+    const action = urlObj.searchParams.get('action');
+    if (action === 'regenerate') {
       const adminKey = KEYS.find(k => k.id === 1);
       if (adminKey) adminKey.uuid = crypto.randomUUID();
     }
@@ -137,31 +138,45 @@ const server = http.createServer((req, res) => {
 
         if (k.id === 1) {
           timeStatus = '<span style="color:#00ff00; font-weight:bold;">∞ สิทธิ์สูงสุดถาวร (Master)</span>';
-          actionButtons = `<a href="/admin-action?action=regenerate" onclick="return confirm('⚠️ ยืนยันการสร้างคีย์ใหม่?');" style="background:#ffc107; color:#000; padding:6px 12px; border-radius:4px; text-decoration:none; font-weight:bold; font-size:12px;">✨ สร้างคีย์ใหม่</a>`;
+          actionButtons = `
+            <div style="position:relative; display:inline-block;">
+              <button onclick="toggleMenu(event)" style="background:#ffc107; color:#000; border:none; padding:6px 12px; border-radius:4px; cursor:pointer; font-weight:bold; font-size:12px;">⚙️ เมนูป้องกัน</button>
+              <div id="admin-dropdown" style="display:none; position:absolute; right:0; background:#222; border:1px solid #444; border-radius:4px; box-shadow:0 4px 10px rgba(0,0,0,0.5); z-index:10; min-width:160px; margin-top:5px;">
+                <a href="/admin-action?action=refresh" style="display:block; padding:10px; color:#fff; text-decoration:none; font-size:12px; border-bottom:1px solid #333;">🔄 รีเฟรช</a>
+                <a href="/admin-action?action=regenerate" onclick="return confirm('⚠️ ยืนยันการสร้างคีย์ใหม่?');" style="display:block; padding:10px; color:#ff4444; text-decoration:none; font-size:12px; font-weight:bold;">✨ สร้างคีย์ใหม่</a>
+              </div>
+            </div>
+          `;
         } else {
           const timeLeft = k.expiresAt - Date.now();
           const daysLeft = Math.ceil(timeLeft / (1000 * 60 * 60 * 24));
-          timeStatus = daysLeft > 0 ? `<span style="color:#00ff00;">เหลือ <b>${daysLeft}</b> วัน</span>` : `<span style="color:#ff4444; font-weight:bold;">🔄 กำลังสร้างใหม่...</span>`;
+          
+          if (daysLeft > 0) {
+            timeStatus = `<span style="color:#00ff00;">เหลือ <b>${daysLeft}</b> วัน<br><span style="font-size:11px; color:#aaa;">(ระบบจะสร้างใหม่ทันทีเมื่อหมดอายุ)</span></span>`;
+          } else {
+            timeStatus = `<span style="color:#ff4444; font-weight:bold;">🔄 กำลังสร้างใหม่...</span>`;
+          }
+
           actionButtons = `
-            <div style="display:flex; gap:5px; align-items:center;">
+            <div style="display:flex; gap:5px; align-items:center; flex-wrap:wrap;">
               <input type="number" id="custom-days-${k.id}" value="1" min="1" style="width:40px; background:#222; color:#fff; border:1px solid #444; padding:4px; text-align:center; border-radius:3px; font-size:12px;">
-              <button onclick="location.href='/update-time?id=${k.id}&days=' + document.getElementById('custom-days-${k.id}').value" style="background:#28a745; color:#fff; border:none; padding:5px 8px; border-radius:3px; cursor:pointer; font-size:11px; font-weight:bold;">+เพิ่ม</button>
-              <button onclick="location.href='/update-time?id=${k.id}&days=-' + document.getElementById('custom-days-${k.id}').value" style="background:#dc3545; color:#fff; border:none; padding:5px 8px; border-radius:3px; cursor:pointer; font-size:11px; font-weight:bold;">-ลด</button>
+              <button onclick="updateTime(${k.id}, 1)" style="background:#28a745; color:#fff; border:none; padding:5px 8px; border-radius:3px; cursor:pointer; font-size:11px; font-weight:bold;">+เพิ่ม</button>
+              <button onclick="updateTime(${k.id}, -1)" style="background:#dc3545; color:#fff; border:none; padding:5px 8px; border-radius:3px; cursor:pointer; font-size:11px; font-weight:bold;">-ลด</button>
             </div>
           `;
         }
 
         return `
           <tr style="border-bottom: 1px solid #333;">
-            <td style="padding:10px;">${k.id}</td>
-            <td style="padding:10px; font-weight:bold;">${k.name}</td>
-            <td style="padding:10px;">${timeStatus}</td>
-            <td style="padding:10px;">${actionButtons}</td>
-            <td style="padding:10px;">
-              <div style="display:flex; gap:8px; align-items:center; flex-wrap:wrap;">
-                <input type="text" id="key-${k.id}" value="${vlessLink}" readonly style="flex:1; background:#222; color:#fff; border:1px solid #444; padding:6px; border-radius:4px; font-size:11px; min-width:200px;" onclick="this.select();">
-                <button onclick="navigator.clipboard.writeText(document.getElementById('key-${k.id}').value); alert('คัดลอกแล้ว!');" style="background:#28a745; color:#fff; border:none; padding:6px 10px; border-radius:4px; cursor:pointer; font-weight:bold; font-size:11px;">📋 คัดลอก</button>
-                <a href="/download-config?id=${k.id}" style="background:#17a2b8; color:#fff; padding:6px 10px; border-radius:4px; text-decoration:none; font-weight:bold; font-size:11px;">📥 โหลดไฟล์ Base64 .txt</a>
+            <td style="padding:10px; vertical-align:middle;">${k.id}</td>
+            <td style="padding:10px; font-weight:bold; vertical-align:middle; white-space:nowrap;">${k.name}</td>
+            <td style="padding:10px; vertical-align:middle;">${timeStatus}</td>
+            <td style="padding:10px; vertical-align:middle;">${actionButtons}</td>
+            <td style="padding:10px; vertical-align:middle;">
+              <div style="display:flex; gap:6px; align-items:center;">
+                <input type="text" id="key-${k.id}" value="${vlessLink}" readonly style="width:160px; background:#222; color:#fff; border:1px solid #444; padding:6px; border-radius:4px; font-size:11px;" onclick="this.select();">
+                <button onclick="copyKey('key-${k.id}', this)" style="background:#28a745; color:#fff; border:none; padding:6px 10px; border-radius:4px; cursor:pointer; font-weight:bold; font-size:11px; white-space:nowrap;">📋 คัดลอก</button>
+                <a href="/download-config?id=${k.id}" style="background:#17a2b8; color:#fff; padding:6px 10px; border-radius:4px; text-decoration:none; font-weight:bold; font-size:11px; white-space:nowrap;">📥 โหลด Base64</a>
               </div>
             </td>
           </tr>
@@ -172,23 +187,63 @@ const server = http.createServer((req, res) => {
       return res.end(`
         <!DOCTYPE html>
         <html>
-        <head><title>Admin Panel</title><meta name="viewport" content="width=device-width, initial-scale=1.0"></head>
-        <body style="font-family:sans-serif; padding:15px; background:#121212; color:#eee;">
-          <div style="display:flex; justify-content:space-between; align-items:center;">
+        <head>
+          <title>Full Control - Admin Panel</title>
+          <meta name="viewport" content="width=device-width, initial-scale=1.0">
+          <script>
+            function toggleMenu(event) {
+              event.stopPropagation();
+              const menu = document.getElementById('admin-dropdown');
+              menu.style.display = menu.style.display === 'block' ? 'none' : 'block';
+            }
+            window.onclick = function(event) {
+              const menu = document.getElementById('admin-dropdown');
+              if (menu && menu.style.display === 'block') {
+                menu.style.display = 'none';
+              }
+            }
+            function updateTime(id, multiplier) {
+              const inputVal = parseInt(document.getElementById('custom-days-' + id).value) || 1;
+              const days = inputVal * multiplier;
+              window.location.href = '/update-time?id=' + id + '&days=' + days;
+            }
+            function copyKey(id, btn) {
+              const input = document.getElementById(id);
+              input.select();
+              navigator.clipboard.writeText(input.value).then(() => {
+                const orig = btn.innerHTML;
+                btn.innerHTML = '✓ คัดลอก';
+                btn.style.background = '#17a2b8';
+                setTimeout(() => {
+                  btn.innerHTML = orig;
+                  btn.style.background = '#28a745';
+                }, 2000);
+              });
+            }
+          </script>
+        </head>
+        <body style="font-family:sans-serif; padding:15px; background:#121212; color:#eee; margin:0;">
+          <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
             <h2>⚡ Full Control: ระบบจัดการคีย์</h2>
-            <a href="/logout" style="background:#dc3545; color:#fff; padding:8px 15px; text-decoration:none; border-radius:5px; font-size:14px;">🔴 ออกจากระบบ</a>
           </div>
           <p>ยินดีต้อนรับป๋า (Admin) | เซิร์ฟเวอร์: <b>${host}</b></p>
           <hr style="border:1px solid #333;">
           <div style="overflow-x:auto;">
-            <table style="width:100%; border-collapse:collapse; text-align:left; min-width:800px;">
+            <table style="width:100%; border-collapse:collapse; text-align:left; min-width:900px;">
               <thead>
                 <tr style="background:#222; color:#aaa;">
-                  <th style="padding:10px;">#</th><th style="padding:10px;">ชื่อยูสเซอร์</th><th style="padding:10px;">สถานะเวลา</th><th style="padding:10px;">จัดการเวลา</th><th style="padding:10px;">ลิงก์ / ดาวน์โหลดคอนฟิก Base64</th>
+                  <th style="padding:10px;">#</th>
+                  <th style="padding:10px;">ชื่อยูสเซอร์</th>
+                  <th style="padding:10px;">สถานะเวลา</th>
+                  <th style="padding:10px;">จัดการเวลา</th>
+                  <th style="padding:10px;">ลิงก์ / ดาวน์โหลดคอนฟิก Base64</th>
                 </tr>
               </thead>
               <tbody>${keyRows}</tbody>
             </table>
+          </div>
+          <div style="margin-top:40px; padding:20px 0; border-top:1px solid #333; text-align:center;">
+            <a href="/logout" onclick="return confirm('⚠️ ยืนยันการออกจากระบบ?');" style="background:#222; color:#ff4444; border:1px solid #444; padding:6px 14px; text-decoration:none; border-radius:4px; font-size:12px; font-weight:bold; display:inline-block;">🔴 ออกจากระบบ</a>
           </div>
         </body>
         </html>
@@ -259,7 +314,7 @@ server.on('upgrade', (req, socket, head) => {
     }
 
     const remoteSocket = net.connect(port, host, () => {
-      socket.write(Buffer.from([chunk[0], 0])); // แก้ไขจุดนี้เรียบร้อย (chunk[0])
+      socket.write(Buffer.from([chunk[0], 0]));
       const rawData = chunk.slice(i);
       if (rawData.length > 0) remoteSocket.write(rawData);
       socket.pipe(remoteSocket);
