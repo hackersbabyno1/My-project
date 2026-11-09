@@ -3,12 +3,14 @@ const http = require('http');
 const PORT = process.env.PORT || 3000;
 
 const server = http.createServer((req, res) => {
+  // ถ้าเป็น Cron Job หรือ Ping ให้ตอบกลับด้วยข้อความบอท
   if (req.url === '/cron' || req.url === '/ping') {
     res.writeHead(200, { 'Content-Type': 'text/plain' });
     res.end('Bot is alive and running!');
     return;
   }
 
+  // นอกเหนือจากนั้น ให้แสดงหน้าร้านค้าและตะกร้าสินค้าของป๋าเต็มๆ
   res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8' });
   res.end(`
     <!DOCTYPE html>
