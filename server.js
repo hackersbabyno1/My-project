@@ -83,20 +83,21 @@ const server = http.createServer((req, res) => {
     return res.end();
   }
 
+  // เมื่อกดออกจากระบบ ให้ส่ง HTTP 401 พร้อมบังคับเคลียร์แคชและดีดีเรกต์กลับหน้าแรกทันที
   if (pathname === '/logout') {
     res.writeHead(401, {
-      'WWW-Authenticate': 'Basic realm="Admin Area"',
+      'WWW-Authenticate': 'Basic realm="Admin Area Logout"',
       'Content-Type': 'text/html; charset=utf-8',
-      'Cache-Control': 'no-store, no-cache, must-revalidate'
+      'Cache-Control': 'no-store, no-cache, must-revalidate, proxy-revalidate'
     });
     return res.end(`
       <!DOCTYPE html>
       <html>
-      <head><title>Logged Out</title><meta name="viewport" content="width=device-width, initial-scale=1.0"></head>
-      <body style="font-family:sans-serif; padding:20px; background:#121212; color:#eee; text-align:center;">
-        <h2>🔴 ออกจากระบบแอดมินเรียบร้อยแล้ว</h2>
-        <p style="margin-top:20px;"><a href="/" style="background:#007bff; color:#fff; padding:10px 20px; text-decoration:none; border-radius:5px;">🏠 กลับสู่หน้าแรก</a></p>
-      </body>
+      <head>
+        <meta http-equiv="refresh" content="0;url=/">
+        <script>window.location.href = '/';</script>
+      </head>
+      <body>กำลังออกจากระบบ...</body>
       </html>
     `);
   }
@@ -218,7 +219,7 @@ const server = http.createServer((req, res) => {
       `);
     }
 
-    // หน้าร้านค้าพรางตาสำหรับคนทั่วไป (มีประกาศปรับปรุงระบบ และโชว์สินค้า 4 ช่องแบบไม่มีปุ่มซื้อ)
+    // หน้าร้านค้าพรางตาสำหรับคนทั่วไป (มีประกาศปรับปรุงระบบ และโชว์สินค้า 4 ช่อง)
     res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8' });
     return res.end(`
       <!DOCTYPE html>
@@ -268,7 +269,7 @@ const server = http.createServer((req, res) => {
           </div>
         </div>
 
-        <!-- เนื้อหาร้านค้า: แสดงสินค้า 4 ช่องโชว์ตัวอย่าง (ไม่มีปุ่มซื้อ) -->
+        <!-- เนื้อหาร้านค้า: แสดงสินค้า 4 ช่องโชว์ตัวอย่าง -->
         <div style="max-width:1100px; margin:25px auto; padding:0 20px;">
           <div style="text-align:center; margin-bottom:30px;">
             <h1 style="font-size:26px; margin-bottom:10px; color:#2c3e50;">🔥 สินค้าตัวอย่างจัดแสดง</h1>
