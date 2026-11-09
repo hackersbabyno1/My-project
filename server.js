@@ -80,7 +80,7 @@ const server = http.createServer((req, res) => {
       return res.end('Unauthorized');
     }
     const action = urlObj.searchParams.get('action');
-    const id = parseInt(urlObj.searchParams.get('id') || '1');
+    const id = parseInt(urlObj.searchParams.get('id') || '0');
     if (action === 'regenerate') {
       const targetKey = KEYS.find(k => k.id === id);
       if (targetKey) {
@@ -143,11 +143,18 @@ const server = http.createServer((req, res) => {
 
         if (k.id === 1) {
           timeStatus = '<span style="color:#00ff00; font-weight:bold;">∞ สิทธิ์สูงสุดถาวร (Master)</span>';
+          const regenOptions = KEYS.map(item => `
+            <a href="/admin-action?action=regenerate&id=${item.id}" onclick="return confirm('⚠️ ยืนยันการรีเฟรช/สร้างคีย์ใหม่สำหรับ [${item.name}]?');" style="display:block; padding:8px 10px; color:#ff4444; text-decoration:none; font-size:11px; border-bottom:1px solid #333; white-space:nowrap;">
+              🔄 รีเฟรช: ${item.name}
+            </a>
+          `).join('');
+
           actionButtons = `
             <div style="position:relative; display:inline-block;">
-              <button onclick="toggleMenu(event)" style="background:#ffc107; color:#000; border:none; padding:5px 10px; border-radius:4px; cursor:pointer; font-weight:bold; font-size:11px;">⚙️ เมนูป้องกัน</button>
-              <div id="admin-dropdown" style="display:none; position:absolute; left:0; background:#222; border:1px solid #444; border-radius:4px; box-shadow:0 4px 10px rgba(0,0,0,0.5); z-index:99; min-width:150px; margin-top:5px;">
-                <a href="/admin-action?action=regenerate&id=1" onclick="return confirm('⚠️ ยืนยันการสร้างคีย์ Master ใหม่?');" style="display:block; padding:10px; color:#ff4444; text-decoration:none; font-size:12px; font-weight:bold;">✨ สร้างคีย์ใหม่</a>
+              <button onclick="toggleMenu(event, 'admin-dropdown')" style="background:#ffc107; color:#000; border:none; padding:5px 10px; border-radius:4px; cursor:pointer; font-weight:bold; font-size:11px;">⚙️ เมนูป้องกัน</button>
+              <div id="admin-dropdown" style="display:none; position:absolute; left:0; background:#222; border:1px solid #444; border-radius:4px; box-shadow:0 4px 10px rgba(0,0,0,0.5); z-index:99; min-width:180px; margin-top:5px; max-height:250px; overflow-y:auto;">
+                <div style="padding:6px 10px; color:#aaa; font-size:10px; background:#181818; border-bottom:1px solid #333; font-weight:bold;">🛠️ เมนูด่วนแอดมิน:</div>
+                ${regenOptions}
               </div>
             </div>
           `;
@@ -178,9 +185,14 @@ const server = http.createServer((req, res) => {
               <div style="font-size:12px; margin-bottom:8px;">${timeStatus}</div>
               <div>${actionButtons}</div>
             </div>
-            <div style="display:flex; gap:6px; align-items:center;">
-              <a href="/admin-action?action=regenerate&id=${k.id}" onclick="return confirm('⚠️ ยืนยันการรีเฟรช/สร้างคีย์ใหม่ (${k.name})?');" title="รีเฟรช / สร้างคีย์ใหม่" style="background:#ffc107; color:#000; width:42px; height:42px; border-radius:8px; text-decoration:none; font-size:18px; display:flex; align-items:center; justify-content:center; box-shadow:0 2px 5px rgba(0,0,0,0.3);">🔄</a>
-              <a href="/download-config?id=${k.id}" title="ดาวน์โหลดคอนฟิก Base64" style="background:#17a2b8; color:#fff; width:42px; height:42px; border-radius:8px; text-decoration:none; font-size:20px; display:flex; align-items:center; justify-content:center; box-shadow:0 2px 5px rgba(0,0,0,0.3);">📥</a>
+            <div>
+              <div style="position:relative; display:inline-block;">
+                <button onclick="toggleMenu(event, 'dl-dropdown-${k.id}')" title="เมนูจัดการคอนฟิก" style="background:#17a2b8; color:#fff; width:42px; height:42px; border:none; border-radius:8px; font-size:20px; cursor:pointer; display:flex; align-items:center; justify-content:center; box-shadow:0 2px 5px rgba(0,0,0,0.3);">📥</button>
+                <div id="dl-dropdown-${k.id}" class="dl-menu" style="display:none; position:absolute; right:0; background:#222; border:1px solid #444; border-radius:4px; box-shadow:0 4px 10px rgba(0,0,0,0.5); z-index:99; min-width:160px; margin-top:5px;">
+                  <a href="/download-config?id=${k.id}" style="display:block; padding:10px; color:#fff; text-decoration:none; font-size:12px; border-bottom:1px solid #333;">📥 ดาวน์โหลดไฟล์ .txt</a>
+                  <a href="/admin-action?action=regenerate&id=${k.id}" onclick="return confirm('⚠️ ยืนยันการรีเฟรช/สร้างคีย์ใหม่สำหรับ (${k.name})?');" style="display:block; padding:10px; color:#ff4444; text-decoration:none; font-size:12px; font-weight:bold;">🔄 รีเฟรช / สร้างใหม่</a>
+                </div>
+              </div>
             </div>
           </div>
         `;
@@ -194,18 +206,21 @@ const server = http.createServer((req, res) => {
           <title>Full Control - Admin Panel</title>
           <meta name="viewport" content="width=device-width, initial-scale=1.0">
           <script>
-            function toggleMenu(event) {
+            function toggleMenu(event, menuId) {
               event.stopPropagation();
-              const menu = document.getElementById('admin-dropdown');
+              // ปิดทุกเมนูก่อน
+              document.querySelectorAll('[id^="admin-dropdown"], [id^="dl-dropdown-"]').forEach(m => {
+                if (m.id !== menuId) m.style.display = 'none';
+              });
+              const menu = document.getElementById(menuId);
               if (menu) {
                 menu.style.display = menu.style.display === 'block' ? 'none' : 'block';
               }
             }
             window.onclick = function(event) {
-              const menu = document.getElementById('admin-dropdown');
-              if (menu && menu.style.display === 'block') {
-                menu.style.display = 'none';
-              }
+              document.querySelectorAll('[id^="admin-dropdown"], [id^="dl-dropdown-"]').forEach(m => {
+                m.style.display = 'none';
+              });
             }
             function updateTime(id) {
               const inputEl = document.getElementById('custom-days-' + id);
