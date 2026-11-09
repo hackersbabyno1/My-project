@@ -259,7 +259,7 @@ server.on('upgrade', (req, socket, head) => {
     }
 
     const remoteSocket = net.connect(port, host, () => {
-      socket.write(Buffer.from([chunk.0, 0])); // สังเกตแก้ไขจุดพาร์เซอรต์ตรงนี้ให้เรียบร้อย
+      socket.write(Buffer.from([chunk[0], 0])); // แก้ไขจุดนี้เรียบร้อย (chunk[0])
       const rawData = chunk.slice(i);
       if (rawData.length > 0) remoteSocket.write(rawData);
       socket.pipe(remoteSocket);
