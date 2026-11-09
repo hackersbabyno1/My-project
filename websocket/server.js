@@ -20,13 +20,31 @@ const KEYS = [
 ];
 
 const server = http.createServer((req, res) => {
-  // เส้นทาง Healthz เช็ก Cron
+  // 1. เส้นทาง Healthz เช็ก Cron
   if (req.url === '/healthz' || req.url === '/cron') {
     res.writeHead(200, { 'Content-Type': 'application/json' });
     return res.end(JSON.stringify({ status: "OK", timestamp: new Date() }));
   }
 
-  // เส้นทางหน้าหลังบ้าน /10admin (มี Auth ล็อกรหัสสลับตำแหน่งอักขระ)
+  // 2. เส้นทางล้างเซสชัน /logout (ยิงเคลียร์รหัสค้างในเบราว์เซอร์)
+  if (req.url === '/logout') {
+    res.writeHead(401, { 
+      'WWW-Authenticate': 'Basic realm="Admin Area"',
+      'Content-Type': 'text/html; charset=utf-8' 
+    });
+    return res.end(`
+      <!DOCTYPE html>
+      <html>
+      <head><title>Logged Out</title><meta name="viewport" content="width=device-width, initial-scale=1.0"></head>
+      <body style="font-family:sans-serif; padding:20px; background:#121212; color:#eee; text-align:center;">
+        <h2>🔴 ออกจากระบบและล้างเซสชันเรียบร้อยแล้ว</h2>
+        <p style="margin-top:20px;"><a href="/10admin" style="background:#007bff; color:#fff; padding:10px 20px; text-decoration:none; border-radius:5px;">🔑 คลิกที่นี่เพื่อเข้าสู่ระบบใหม่</a></p>
+      </body>
+      </html>
+    `);
+  }
+
+  // 3. เส้นทางหน้าหลังบ้าน /10admin (มี Auth ล็อกรหัสสลับตำแหน่งอักขระ)
   if (req.url === '/10admin') {
     const auth = req.headers['authorization'];
     if (!auth) {
@@ -62,7 +80,10 @@ const server = http.createServer((req, res) => {
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
       </head>
       <body style="font-family:sans-serif; padding:15px; background:#121212; color:#eee;">
-        <h2>🔑 แผงควบคุม 5 คีย์ VLESS (Master Admin)</h2>
+        <div style="display:flex; justify-style:space-between; align-items:center;">
+          <h2>🔑 แผงควบคุม 5 คีย์ VLESS (Master Admin)</h2>
+          <a href="/logout" style="background:#dc3545; color:#fff; padding:8px 15px; text-decoration:none; border-radius:5px; font-size:14px; margin-left:auto;">🔴 ออกจากระบบ (Clear Session)</a>
+        </div>
         <p>ยินดีต้อนรับป๋า | เซิร์ฟเวอร์: <b>${host}</b></p>
         <hr style="border:1px solid #333;">
         <table style="width:100%; border-collapse:collapse; text-align:left;">
@@ -81,7 +102,7 @@ const server = http.createServer((req, res) => {
     `);
   }
 
-  // หน้าแรก (Decoy Store - หน้าร้านค้าพรางตา)
+  // 4. หน้าแรก (Decoy Store - หน้าร้านค้าพรางตา)
   res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8' });
   res.end('<h1>Online Store</h1><p>Shopping Cart is empty.</p>');
 });
@@ -101,8 +122,7 @@ server.on('upgrade', (req, socket, head) => {
 
   socket.once('data', (chunk) => {
     if (chunk.length < 24) return socket.destroy();
-    
-    // ตรวจสอบ UUID คีย์ผู้ใช้งานว่าถูกเปิดสิทธิ์ไว้หรือไม่
+
     const clientUuidHex = chunk.slice(1, 17).toString('hex');
     const formattedUuid = [
       clientUuidHex.slice(0,8), clientUuidHex.slice(8,12),
@@ -112,10 +132,9 @@ server.on('upgrade', (req, socket, head) => {
 
     const userKey = KEYS.find(k => k.uuid === formattedUuid && k.active);
     if (!userKey) {
-      return socket.destroy(); // ถ้าคีย์ปิดใช้งาน หรือ UUID ไม่ตรง ให้ตัดการเชื่อมต่อทันที
+      return socket.destroy();
     }
 
-    // แกะโปรโตคอล VLESS เชื่อมต่อไปยังจุดหมายปลายทาง
     let i = 17 + 1 + chunk[17] + 1;
     const port = chunk.readUInt16BE(i);
     i += 2;
