@@ -44,6 +44,22 @@ const server = http.createServer((req, res) => {
     return res.end(JSON.stringify({ status: "OK", timestamp: new Date() }));
   }
 
+  // จัดการระบบออกจากระบบแบบเคลียร์คุกกี้และสิทธิ์เบราว์เซอร์
+  if (pathname === '/logout') {
+    res.writeHead(200, {
+      'Content-Type': 'text/html; charset=utf-8',
+      'Set-Cookie': 'admin_auth=; Max-Age=0; Path=/;',
+      'WWW-Authenticate': 'Basic realm="Logout Force"'
+    });
+    return res.end(`
+      <!DOCTYPE html>
+      <html>
+      <head><meta http-equiv="refresh" content="0;url=/?logout=success"></head>
+      <body>กำลังออกจากระบบ...</body>
+      </html>
+    `);
+  }
+
   const auth = req.headers['authorization'];
   let isAdmin = false;
   if (auth) {
@@ -53,13 +69,18 @@ const server = http.createServer((req, res) => {
     } catch (e) {}
   }
 
-  // เส้นทางสำหรับรับค่าล็อกอินผ่านฟอร์มแล้วพาเข้าสู่ระบบ
+  // ตรวจสอบคุกกี้แอดมิน
+  const cookie = req.headers['cookie'] || '';
+  if (cookie.includes('admin_auth=true')) {
+    isAdmin = true;
+  }
+
+  // เส้นทางสำหรับรับค่าล็อกอินผ่านฟอร์ม
   if (pathname === '/do-login') {
     const query = urlObj.searchParams;
     const u = query.get('u');
     const p = query.get('p');
     if (u === ADMIN_USER && checkPassword(p)) {
-      // ถ้ารหัสผ่านถูกต้อง ให้ redirect ไปหน้าแรกพร้อมส่งสิทธิ์แอดมิน
       res.writeHead(302, {
         'Set-Cookie': `admin_auth=true; Path=/; HttpOnly`,
         'Location': '/'
@@ -98,20 +119,6 @@ const server = http.createServer((req, res) => {
     }
     res.writeHead(302, { 'Location': '/' });
     return res.end();
-  }
-
-  // ออกจากระบบ
-  if (pathname === '/logout') {
-    res.writeHead(302, {
-      'Location': '/'
-    });
-    return res.end();
-  }
-
-  // ตรวจสอบคุกกี้ง่ายๆ หรือ Basic Auth สำหรับแอดมิน
-  const cookie = req.headers['cookie'] || '';
-  if (cookie.includes('admin_auth=true') || isAdmin) {
-    isAdmin = true;
   }
 
   if (pathname === '/') {
@@ -207,7 +214,7 @@ const server = http.createServer((req, res) => {
           <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px; margin-bottom:10px;">
             <h2>⚡ Full Control: ระบบจัดการคีย์</h2>
             <div style="display:flex; gap:8px;">
-              <a href="/logout" onclick="document.cookie='admin_auth=; Max-Age=0; path=/';" style="background:#dc3545; color:#fff; padding:8px 15px; text-decoration:none; border-radius:5px; font-size:14px;">🔴 ออกจากระบบ</a>
+              <a href="/logout" style="background:#dc3545; color:#fff; padding:8px 15px; text-decoration:none; border-radius:5px; font-size:14px;">🔴 ออกจากระบบ</a>
             </div>
           </div>
           <p>ยินดีต้อนรับป๋า (Admin) | เซิร์ฟเวอร์: <b>${host}</b></p>
@@ -231,7 +238,7 @@ const server = http.createServer((req, res) => {
       `);
     }
 
-    // หน้าร้านค้าพรางตา พร้อมฟอร์มส่งค่าล็อกอินตรงไปที่ /do-login
+    // หน้าร้านค้าพรางตา
     res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8' });
     return res.end(`
       <!DOCTYPE html>
@@ -241,7 +248,6 @@ const server = http.createServer((req, res) => {
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
       </head>
       <body style="font-family:sans-serif; margin:0; background:#f8f9fa; color:#333;">
-        <!-- แถบเมนูด้านบน พร้อมฟอร์มส่งข้อมูลแบบปกติ -->
         <div style="background:#ffffff; padding:15px 25px; display:flex; justify-content:space-between; align-items:center; box-shadow:0 2px 8px rgba(0,0,0,0.08); flex-wrap:wrap; gap:12px;">
           <div>
             <h2 style="margin:0; color:#2c3e50; font-size:22px;">🛍️ Mega Online Store</h2>
@@ -256,6 +262,7 @@ const server = http.createServer((req, res) => {
         </div>
 
         ${urlObj.searchParams.get('error') ? '<div style="background:#f8d7da; color:#721c24; padding:10px; text-align:center; font-size:13px;">❌ ชื่อผู้ใช้หรือรหัสผ่านไม่ถูกต้อง กรุณาลองใหม่อีกครั้ง</div>' : ''}
+        ${urlObj.searchParams.get('logout') ? '<div style="background:#d4edda; color:#155724; padding:10px; text-align:center; font-size:13px;">✅ ออกจากระบบเรียบร้อยแล้ว</div>' : ''}
 
         <!-- ประกาศแจ้งเตือนหน้าเว็บ -->
         <div style="max-width:1100px; margin:20px auto 0; padding:0 20px;">
