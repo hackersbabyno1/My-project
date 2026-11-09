@@ -10,7 +10,40 @@ const server = http.createServer((req, res) => {
     return;
   }
 
-  // นอกเหนือจากนั้น ให้แสดงหน้าร้านค้าและตะกร้าสินค้าของป๋าเต็มๆ
+  // หน้า Admin Control (/10admin)
+  if (req.url === '/10admin') {
+    res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8' });
+    res.end(`
+      <!DOCTYPE html>
+      <html lang="th">
+      <head>
+          <meta charset="UTF-8">
+          <meta name="viewport" content="width=device-width, initial-scale=1.0">
+          <title>10 Admin Control - ระบบจัดการหลังบ้าน</title>
+          <style>
+              body { font-family: sans-serif; background: #0f172a; color: #f8fafc; margin: 0; padding: 20px; }
+              .admin-box { background: #1e293b; padding: 20px; border-radius: 8px; max-width: 600px; margin: 0 auto; box-shadow: 0 4px 6px rgba(0,0,0,0.3); }
+              h2 { color: #38bdf8; border-bottom: 2px solid #334155; padding-bottom: 10px; }
+              .btn { background: #ef4444; color: #fff; border: none; padding: 10px 15px; border-radius: 5px; font-weight: bold; cursor: pointer; margin-top: 15px; }
+          </style>
+      </head>
+      <body>
+          <div class="admin-box">
+              <h2>🛠️ 10 Admin Control (ระบบหลังบ้าน)</h2>
+              <p>ยินดีต้อนรับสู่แอดมินคอนโซลของป๋า ระบบทำงานปกติพร้อมควบคุมสิทธิ์และจัดการระบบครับ!</p>
+              <ul>
+                  <li>สถานะระบบ: <b>ออนไลน์ (Render Cloud)</b></li>
+                  <li>จัดการคีย์ / สิทธิ์ครอบครัว: <b>พร้อมใช้งาน</b></li>
+              </ul>
+              <button class="btn" onclick="location.href='/'">🔙 กลับสู่หน้าร้านค้า</button>
+          </div>
+      </body>
+      </html>
+    `);
+    return;
+  }
+
+  // หน้าร้านค้าหลัก
   res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8' });
   res.end(`
     <!DOCTYPE html>
