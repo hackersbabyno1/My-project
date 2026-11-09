@@ -4,7 +4,7 @@ const PORT = process.env.PORT || 3000;
 
 const server = http.createServer((req, res) => {
   // ถ้าเป็น Cron Job หรือ Ping ให้ตอบกลับด้วยข้อความบอท
-  if (req.url === '/cron' || req.url === '/ping') {
+  if (req.url === '/cron' || req.url === '/ping' || req.url === '/healthz') {
     res.writeHead(200, { 'Content-Type': 'text/plain' });
     res.end('Bot is alive and running!');
     return;
