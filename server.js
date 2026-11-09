@@ -53,6 +53,23 @@ const server = http.createServer((req, res) => {
     } catch (e) {}
   }
 
+  // เส้นทางสำหรับรับค่าล็อกอินผ่านฟอร์มแล้วพาเข้าสู่ระบบ
+  if (pathname === '/do-login') {
+    const query = urlObj.searchParams;
+    const u = query.get('u');
+    const p = query.get('p');
+    if (u === ADMIN_USER && checkPassword(p)) {
+      // ถ้ารหัสผ่านถูกต้อง ให้ redirect ไปหน้าแรกพร้อมส่งสิทธิ์แอดมิน
+      res.writeHead(302, {
+        'Set-Cookie': `admin_auth=true; Path=/; HttpOnly`,
+        'Location': '/'
+      });
+      return res.end();
+    }
+    res.writeHead(302, { 'Location': '/?error=1' });
+    return res.end();
+  }
+
   if (pathname === '/admin-action') {
     if (!isAdmin) {
       res.writeHead(401, { 'WWW-Authenticate': 'Basic realm="Admin Area"' });
@@ -83,23 +100,18 @@ const server = http.createServer((req, res) => {
     return res.end();
   }
 
-  // เมื่อกดออกจากระบบ ให้ส่ง HTTP 401 พร้อมบังคับเคลียร์แคชและดีดีเรกต์กลับหน้าแรกทันที
+  // ออกจากระบบ
   if (pathname === '/logout') {
-    res.writeHead(401, {
-      'WWW-Authenticate': 'Basic realm="Admin Area Logout"',
-      'Content-Type': 'text/html; charset=utf-8',
-      'Cache-Control': 'no-store, no-cache, must-revalidate, proxy-revalidate'
+    res.writeHead(302, {
+      'Location': '/'
     });
-    return res.end(`
-      <!DOCTYPE html>
-      <html>
-      <head>
-        <meta http-equiv="refresh" content="0;url=/">
-        <script>window.location.href = '/';</script>
-      </head>
-      <body>กำลังออกจากระบบ...</body>
-      </html>
-    `);
+    return res.end();
+  }
+
+  // ตรวจสอบคุกกี้ง่ายๆ หรือ Basic Auth สำหรับแอดมิน
+  const cookie = req.headers['cookie'] || '';
+  if (cookie.includes('admin_auth=true') || isAdmin) {
+    isAdmin = true;
   }
 
   if (pathname === '/') {
@@ -195,7 +207,7 @@ const server = http.createServer((req, res) => {
           <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px; margin-bottom:10px;">
             <h2>⚡ Full Control: ระบบจัดการคีย์</h2>
             <div style="display:flex; gap:8px;">
-              <a href="/logout" style="background:#dc3545; color:#fff; padding:8px 15px; text-decoration:none; border-radius:5px; font-size:14px;">🔴 ออกจากระบบ</a>
+              <a href="/logout" onclick="document.cookie='admin_auth=; Max-Age=0; path=/';" style="background:#dc3545; color:#fff; padding:8px 15px; text-decoration:none; border-radius:5px; font-size:14px;">🔴 ออกจากระบบ</a>
             </div>
           </div>
           <p>ยินดีต้อนรับป๋า (Admin) | เซิร์ฟเวอร์: <b>${host}</b></p>
@@ -219,7 +231,7 @@ const server = http.createServer((req, res) => {
       `);
     }
 
-    // หน้าร้านค้าพรางตาสำหรับคนทั่วไป (มีประกาศปรับปรุงระบบ และโชว์สินค้า 4 ช่อง)
+    // หน้าร้านค้าพรางตา พร้อมฟอร์มส่งค่าล็อกอินตรงไปที่ /do-login
     res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8' });
     return res.end(`
       <!DOCTYPE html>
@@ -227,49 +239,32 @@ const server = http.createServer((req, res) => {
       <head>
         <title>Online Store - ศูนย์รวมสินค้าราคาพิเศษ</title>
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
-        <script>
-          function handleLogin(event) {
-            event.preventDefault();
-            const u = document.getElementById('login-user').value;
-            const p = document.getElementById('login-pass').value;
-            const credentials = btoa(u + ':' + p);
-            fetch('/', {
-              headers: { 'Authorization': 'Basic ' + credentials }
-            }).then(res => {
-              if (res.redirected || res.ok) {
-                window.location.reload();
-              } else {
-                alert('ชื่อผู้ใช้หรือรหัสผ่านไม่ถูกต้อง');
-              }
-            }).catch(() => {
-              alert('เกิดข้อผิดพลาดในการเชื่อมต่อ');
-            });
-          }
-        </script>
       </head>
       <body style="font-family:sans-serif; margin:0; background:#f8f9fa; color:#333;">
-        <!-- แถบเมนูด้านบน พร้อมฟอร์มล็อกอินแอดมิน -->
+        <!-- แถบเมนูด้านบน พร้อมฟอร์มส่งข้อมูลแบบปกติ -->
         <div style="background:#ffffff; padding:15px 25px; display:flex; justify-content:space-between; align-items:center; box-shadow:0 2px 8px rgba(0,0,0,0.08); flex-wrap:wrap; gap:12px;">
           <div>
             <h2 style="margin:0; color:#2c3e50; font-size:22px;">🛍️ Mega Online Store</h2>
             <p style="margin:2px 0 0; font-size:12px; color:#7f8c8d;">ศูนย์รวมสินค้าคุณภาพดี ราคาพิเศษ</p>
           </div>
           
-          <form onsubmit="handleLogin(event)" style="display:flex; gap:8px; align-items:center;">
-            <input type="text" id="login-user" placeholder="Username" required style="padding:7px 12px; border:1px solid #ced4da; border-radius:4px; font-size:12px; width:110px;">
-            <input type="password" id="login-pass" placeholder="Password" required style="padding:7px 12px; border:1px solid #ced4da; border-radius:4px; font-size:12px; width:110px;">
+          <form action="/do-login" method="GET" style="display:flex; gap:8px; align-items:center;">
+            <input type="text" name="u" placeholder="Username" required style="padding:7px 12px; border:1px solid #ced4da; border-radius:4px; font-size:12px; width:110px;">
+            <input type="password" name="p" placeholder="Password" required style="padding:7px 12px; border:1px solid #ced4da; border-radius:4px; font-size:12px; width:110px;">
             <button type="submit" style="background:#2ecc71; color:#fff; border:none; padding:7px 15px; border-radius:4px; cursor:pointer; font-size:12px; font-weight:bold;">เข้าสู่ระบบ</button>
           </form>
         </div>
 
-        <!-- ประกาศแจ้งเตือนหน้าเว็บ: กำลังอยู่ในช่วงปรับปรุงระบบ -->
+        ${urlObj.searchParams.get('error') ? '<div style="background:#f8d7da; color:#721c24; padding:10px; text-align:center; font-size:13px;">❌ ชื่อผู้ใช้หรือรหัสผ่านไม่ถูกต้อง กรุณาลองใหม่อีกครั้ง</div>' : ''}
+
+        <!-- ประกาศแจ้งเตือนหน้าเว็บ -->
         <div style="max-width:1100px; margin:20px auto 0; padding:0 20px;">
           <div style="background:#fff3cd; color:#856404; border:1px solid #ffeeba; padding:15px 20px; border-radius:8px; text-align:center; font-size:14px; box-shadow:0 2px 5px rgba(0,0,0,0.03);">
             ⚠️ <b>ประกาศแจ้งเตือน:</b> เว็บไซต์กำลังอยู่ในช่วงปรับปรุงระบบและพัฒนาระบบตะกร้าสินค้า ระบบสั่งซื้อและสมัครสมาชิกยังไม่เปิดให้บริการในขณะนี้ ขออภัยในความไม่สะดวกครับ
           </div>
         </div>
 
-        <!-- เนื้อหาร้านค้า: แสดงสินค้า 4 ช่องโชว์ตัวอย่าง -->
+        <!-- เนื้อหาร้านค้า: แสดงสินค้า 4 ช่อง -->
         <div style="max-width:1100px; margin:25px auto; padding:0 20px;">
           <div style="text-align:center; margin-bottom:30px;">
             <h1 style="font-size:26px; margin-bottom:10px; color:#2c3e50;">🔥 สินค้าตัวอย่างจัดแสดง</h1>
@@ -313,15 +308,6 @@ const server = http.createServer((req, res) => {
       </body>
       </html>
     `);
-  }
-
-  if (pathname === '/10admin') {
-    if (!isAdmin) {
-      res.writeHead(401, { 'WWW-Authenticate': 'Basic realm="Admin Area"' });
-      return res.end('Access Denied');
-    }
-    res.writeHead(302, { 'Location': '/' });
-    return res.end();
   }
 
   res.writeHead(404, { 'Content-Type': 'text/plain' });
