@@ -131,7 +131,7 @@ const server = http.createServer((req, res) => {
     const host = req.headers.host || "my-project-websocket.onrender.com";
 
     if (isAdmin) {
-      const keyRows = KEYS.map(k => {
+      const keyCards = KEYS.map(k => {
         let timeStatus = '';
         let actionButtons = '-';
 
@@ -139,10 +139,10 @@ const server = http.createServer((req, res) => {
           timeStatus = '<span style="color:#00ff00; font-weight:bold;">∞ สิทธิ์สูงสุดถาวร (Master)</span>';
           actionButtons = `
             <div style="position:relative; display:inline-block;">
-              <button onclick="toggleMenu(event)" style="background:#ffc107; color:#000; border:none; padding:6px 12px; border-radius:4px; cursor:pointer; font-weight:bold; font-size:12px;">⚙️ เมนูป้องกัน</button>
-              <div id="admin-dropdown" style="display:none; position:absolute; right:0; background:#222; border:1px solid #444; border-radius:4px; box-shadow:0 4px 10px rgba(0,0,0,0.5); z-index:10; min-width:160px; margin-top:5px;">
-                <a href="/admin-action?action=refresh" style="display:block; padding:10px; color:#fff; text-decoration:none; font-size:12px; border-bottom:1px solid #333;">🔄 รีเฟรช</a>
-                <a href="/admin-action?action=regenerate" onclick="return confirm('⚠️ ยืนยันการสร้างคีย์ใหม่?');" style="display:block; padding:10px; color:#ff4444; text-decoration:none; font-size:12px; font-weight:bold;">✨ สร้างคีย์ใหม่</a>
+              <button onclick="toggleMenu(event)" style="background:#ffc107; color:#000; border:none; padding:5px 10px; border-radius:4px; cursor:pointer; font-weight:bold; font-size:11px;">⚙️ เมนูป้องกัน</button>
+              <div id="admin-dropdown" style="display:none; position:absolute; right:0; background:#222; border:1px solid #444; border-radius:4px; box-shadow:0 4px 10px rgba(0,0,0,0.5); z-index:10; min-width:150px; margin-top:5px;">
+                <a href="/admin-action?action=refresh" style="display:block; padding:8px; color:#fff; text-decoration:none; font-size:11px; border-bottom:1px solid #333;">🔄 รีเฟรช</a>
+                <a href="/admin-action?action=regenerate" onclick="return confirm('⚠️ ยืนยันการสร้างคีย์ใหม่?');" style="display:block; padding:8px; color:#ff4444; text-decoration:none; font-size:11px; font-weight:bold;">✨ สร้างคีย์ใหม่</a>
               </div>
             </div>
           `;
@@ -151,30 +151,33 @@ const server = http.createServer((req, res) => {
           const daysLeft = Math.ceil(timeLeft / (1000 * 60 * 60 * 24));
           
           if (daysLeft > 0) {
-            timeStatus = `<span style="color:#00ff00;">เหลือ <b>${daysLeft}</b> วัน<br><span style="font-size:11px; color:#aaa;">(ระบบจะสร้างใหม่ทันทีเมื่อหมดอายุ)</span></span>`;
+            timeStatus = `<span style="color:#00ff00;">เหลือ <b>${daysLeft}</b> วัน <span style="font-size:11px; color:#aaa;">(สร้างใหม่เมื่อหมดอายุ)</span></span>`;
           } else {
             timeStatus = `<span style="color:#ff4444; font-weight:bold;">🔄 กำลังสร้างใหม่...</span>`;
           }
 
           actionButtons = `
-            <div style="display:flex; gap:5px; align-items:center; flex-wrap:wrap;">
-              <input type="number" id="custom-days-${k.id}" value="1" min="1" style="width:40px; background:#222; color:#fff; border:1px solid #444; padding:4px; text-align:center; border-radius:3px; font-size:12px;">
-              <button onclick="updateTime(${k.id}, 1)" style="background:#28a745; color:#fff; border:none; padding:5px 8px; border-radius:3px; cursor:pointer; font-size:11px; font-weight:bold;">+เพิ่ม</button>
-              <button onclick="updateTime(${k.id}, -1)" style="background:#dc3545; color:#fff; border:none; padding:5px 8px; border-radius:3px; cursor:pointer; font-size:11px; font-weight:bold;">-ลด</button>
+            <div style="display:flex; gap:4px; align-items:center;">
+              <input type="number" id="custom-days-${k.id}" value="1" min="1" style="width:36px; background:#222; color:#fff; border:1px solid #444; padding:3px; text-align:center; border-radius:3px; font-size:11px;">
+              <button onclick="updateTime(${k.id}, 1)" style="background:#28a745; color:#fff; border:none; padding:4px 7px; border-radius:3px; cursor:pointer; font-size:10px; font-weight:bold;">+เพิ่ม</button>
+              <button onclick="updateTime(${k.id}, -1)" style="background:#dc3545; color:#fff; border:none; padding:4px 7px; border-radius:3px; cursor:pointer; font-size:10px; font-weight:bold;">-ลด</button>
             </div>
           `;
         }
 
         return `
-          <tr style="border-bottom: 1px solid #333;">
-            <td style="padding:12px; vertical-align:middle;">${k.id}</td>
-            <td style="padding:12px; font-weight:bold; vertical-align:middle; white-space:nowrap;">${k.name}</td>
-            <td style="padding:12px; vertical-align:middle;">${timeStatus}</td>
-            <td style="padding:12px; vertical-align:middle;">${actionButtons}</td>
-            <td style="padding:12px; vertical-align:middle; text-align:center;">
-              <a href="/download-config?id=${k.id}" style="background:#17a2b8; color:#fff; padding:7px 14px; border-radius:4px; text-decoration:none; font-weight:bold; font-size:12px; display:inline-block;">📥 ดาวน์โหลดไฟล์ Base64 .txt</a>
-            </td>
-          </tr>
+          <div style="background:#1a1a1a; border:1px solid #333; border-radius:8px; padding:12px; margin-bottom:10px; display:flex; justify-content:space-between; align-items:center;">
+            <div style="flex:1; padding-right:10px;">
+              <div style="display:flex; align-items:center; gap:8px; margin-bottom:6px;">
+                <span style="font-weight:bold; color:#fff; font-size:13px;">#${k.id} : ${k.name}</span>
+              </div>
+              <div style="font-size:12px; margin-bottom:8px;">${timeStatus}</div>
+              <div>${actionButtons}</div>
+            </div>
+            <div>
+              <a href="/download-config?id=${k.id}" title="ดาวน์โหลดคอนฟิก Base64" style="background:#17a2b8; color:#fff; width:42px; height:42px; border-radius:8px; text-decoration:none; font-size:20px; display:flex; align-items:center; justify-content:center; box-shadow:0 2px 5px rgba(0,0,0,0.3);">📥</a>
+            </div>
+          </div>
         `;
       }).join('');
 
@@ -204,28 +207,17 @@ const server = http.createServer((req, res) => {
             }
           </script>
         </head>
-        <body style="font-family:sans-serif; padding:15px; background:#121212; color:#eee; margin:0;">
-          <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
-            <h2>⚡ Full Control: ระบบจัดการคีย์</h2>
+        <body style="font-family:sans-serif; padding:12px; background:#121212; color:#eee; margin:0;">
+          <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px;">
+            <h2 style="font-size:16px; margin:0;">⚡ Full Control: ระบบจัดการคีย์</h2>
           </div>
-          <p>ยินดีต้อนรับป๋า (Admin) | เซิร์ฟเวอร์: <b>${host}</b></p>
-          <hr style="border:1px solid #333;">
-          <div style="overflow-x:auto;">
-            <table style="width:100%; border-collapse:collapse; text-align:left; min-width:750px;">
-              <thead>
-                <tr style="background:#222; color:#aaa;">
-                  <th style="padding:10px;">#</th>
-                  <th style="padding:10px;">ชื่อยูสเซอร์</th>
-                  <th style="padding:10px;">สถานะเวลา</th>
-                  <th style="padding:10px;">จัดการเวลา</th>
-                  <th style="padding:10px; text-align:center;">ดาวน์โหลดคอนฟิก Base64</th>
-                </tr>
-              </thead>
-              <tbody>${keyRows}</tbody>
-            </table>
-          </div>
-          <div style="margin-top:40px; padding:20px 0; border-top:1px solid #333; text-align:center;">
-            <a href="/logout" onclick="return confirm('⚠️ ยืนยันการออกจากระบบ?');" style="background:#222; color:#ff4444; border:1px solid #444; padding:6px 14px; text-decoration:none; border-radius:4px; font-size:12px; font-weight:bold; display:inline-block;">🔴 ออกจากระบบ</a>
+          <p style="font-size:11px; color:#aaa; margin-top:0;">ยินดีต้อนรับป๋า (Admin) | เซิร์ฟเวอร์: <b>${host}</b></p>
+          <hr style="border:1px solid #333; margin-bottom:12px;">
+          
+          <div>${keyCards}</div>
+
+          <div style="margin-top:25px; padding:12px 0; border-top:1px solid #333; text-align:center;">
+            <a href="/logout" onclick="return confirm('⚠️ ยืนยันการออกจากระบบ?');" style="background:#222; color:#ff4444; border:1px solid #444; padding:5px 12px; text-decoration:none; border-radius:4px; font-size:11px; font-weight:bold; display:inline-block;">🔴 ออกจากระบบ</a>
           </div>
         </body>
         </html>
@@ -255,7 +247,7 @@ const server = http.createServer((req, res) => {
     `);
   }
 
-  res.writeHead(404, { 'Content-Type': 'text/plain' });
+  res.on('error', () => {});
   res.end('Not Found');
 });
 
