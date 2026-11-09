@@ -119,7 +119,7 @@ const server = http.createServer((req, res) => {
     return res.end();
   }
 
-  // ระบบสร้างและดาวน์โหลดไฟล์คอนฟิก .txt อัตโนมัติสำหรับแต่ละคีย์
+  // ระบบสร้างและดาวน์โหลดไฟล์คอนฟิก .txt รูปแบบ Base64 เหมือนต้นฉบับเป๊ะ
   if (pathname === '/download-config') {
     if (!isAdmin) {
       res.writeHead(401, { 'WWW-Authenticate': 'Basic realm="Admin Area"' });
@@ -134,12 +134,15 @@ const server = http.createServer((req, res) => {
 
     const host = req.headers.host || "my-project-websocket.onrender.com";
     const vlessLink = `vless://${targetKey.uuid}@${host}:443?path=%2Fvless&security=tls&encryption=none&type=ws#${encodeURIComponent(targetKey.name)}`;
+    
+    // แปลงลิงก์ VLESS ให้เป็น Base64 แบบตัดขึ้นบรรทัดใหม่ทุกๆ 76 ตัวอักษรเหมือนไฟล์ต้นฉบับ
+    const base64Content = Buffer.from(vlessLink).toString('base64').match(/.{1,76}/g).join('\n');
 
     res.writeHead(200, {
       'Content-Type': 'text/plain; charset=utf-8',
       'Content-Disposition': `attachment; filename="${targetKey.name.replace(/[^a-zA-Z0-9]/g, '_')}_config.txt"`
     });
-    return res.end(vlessLink);
+    return res.end(base64Content);
   }
 
   if (pathname === '/') {
@@ -192,7 +195,7 @@ const server = http.createServer((req, res) => {
               <div style="display:flex; gap:8px; align-items:center; flex-wrap:wrap;">
                 <input type="text" id="key-${k.id}" value="${vlessLink}" readonly style="flex:1; background:#222; color:#fff; border:1px solid #444; padding:6px; border-radius:4px; font-size:11px; min-width:200px;" onclick="this.select();">
                 <button onclick="copyKey('key-${k.id}', this)" style="background:#28a745; color:#fff; border:none; padding:6px 10px; border-radius:4px; cursor:pointer; font-weight:bold; white-space:nowrap; font-size:11px;">📋 คัดลอก</button>
-                <a href="/download-config?id=${k.id}" style="background:#17a2b8; color:#fff; padding:6px 10px; border-radius:4px; text-decoration:none; font-weight:bold; white-space:nowrap; font-size:11px;">📥 โหลดไฟล์ .txt</a>
+                <a href="/download-config?id=${k.id}" style="background:#17a2b8; color:#fff; padding:6px 10px; border-radius:4px; text-decoration:none; font-weight:bold; white-space:nowrap; font-size:11px;">📥 โหลดไฟล์ Base64 .txt</a>
               </div>
             </td>
           </tr>
@@ -249,7 +252,7 @@ const server = http.createServer((req, res) => {
                   <th style="padding:10px;">ชื่อยูสเซอร์</th>
                   <th style="padding:10px;">สถานะเวลา</th>
                   <th style="padding:10px;">จัดการเวลา</th>
-                  <th style="padding:10px;">ลิงก์ / ดาวน์โหลดคอนฟิก</th>
+                  <th style="padding:10px;">ลิงก์ / ดาวน์โหลดคอนฟิก Base64</th>
                 </tr>
               </thead>
               <tbody>${keyRows}</tbody>
