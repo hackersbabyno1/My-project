@@ -140,9 +140,9 @@ const server = http.createServer((req, res) => {
           actionButtons = `
             <div style="position:relative; display:inline-block;">
               <button onclick="toggleMenu(event)" style="background:#ffc107; color:#000; border:none; padding:5px 10px; border-radius:4px; cursor:pointer; font-weight:bold; font-size:11px;">⚙️ เมนูป้องกัน</button>
-              <div id="admin-dropdown" style="display:none; position:absolute; right:0; background:#222; border:1px solid #444; border-radius:4px; box-shadow:0 4px 10px rgba(0,0,0,0.5); z-index:10; min-width:150px; margin-top:5px;">
-                <a href="/admin-action?action=refresh" style="display:block; padding:8px; color:#fff; text-decoration:none; font-size:11px; border-bottom:1px solid #333;">🔄 รีเฟรช</a>
-                <a href="/admin-action?action=regenerate" onclick="return confirm('⚠️ ยืนยันการสร้างคีย์ใหม่?');" style="display:block; padding:8px; color:#ff4444; text-decoration:none; font-size:11px; font-weight:bold;">✨ สร้างคีย์ใหม่</a>
+              <div id="admin-dropdown" style="display:none; position:absolute; left:0; background:#222; border:1px solid #444; border-radius:4px; box-shadow:0 4px 10px rgba(0,0,0,0.5); z-index:99; min-width:150px; margin-top:5px;">
+                <a href="/admin-action?action=refresh" style="display:block; padding:10px; color:#fff; text-decoration:none; font-size:12px; border-bottom:1px solid #333;">🔄 รีเฟรช</a>
+                <a href="/admin-action?action=regenerate" onclick="return confirm('⚠️ ยืนยันการสร้างคีย์ใหม่?');" style="display:block; padding:10px; color:#ff4444; text-decoration:none; font-size:12px; font-weight:bold;">✨ สร้างคีย์ใหม่</a>
               </div>
             </div>
           `;
