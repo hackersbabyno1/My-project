@@ -69,13 +69,11 @@ const server = http.createServer((req, res) => {
     } catch (e) {}
   }
 
-  // ตรวจสอบคุกกี้แอดมิน
   const cookie = req.headers['cookie'] || '';
   if (cookie.includes('admin_auth=true')) {
     isAdmin = true;
   }
 
-  // เส้นทางสำหรับรับค่าล็อกอินผ่านฟอร์ม
   if (pathname === '/do-login') {
     const query = urlObj.searchParams;
     const u = query.get('u');
@@ -119,6 +117,29 @@ const server = http.createServer((req, res) => {
     }
     res.writeHead(302, { 'Location': '/' });
     return res.end();
+  }
+
+  // ระบบสร้างและดาวน์โหลดไฟล์คอนฟิก .txt อัตโนมัติสำหรับแต่ละคีย์
+  if (pathname === '/download-config') {
+    if (!isAdmin) {
+      res.writeHead(401, { 'WWW-Authenticate': 'Basic realm="Admin Area"' });
+      return res.end('Unauthorized');
+    }
+    const id = parseInt(urlObj.searchParams.get('id'));
+    const targetKey = KEYS.find(k => k.id === id);
+    if (!targetKey) {
+      res.writeHead(404, { 'Content-Type': 'text/plain' });
+      return res.end('Key not found');
+    }
+
+    const host = req.headers.host || "my-project-websocket.onrender.com";
+    const vlessLink = `vless://${targetKey.uuid}@${host}:443?path=%2Fvless&security=tls&encryption=none&type=ws#${encodeURIComponent(targetKey.name)}`;
+
+    res.writeHead(200, {
+      'Content-Type': 'text/plain; charset=utf-8',
+      'Content-Disposition': `attachment; filename="${targetKey.name.replace(/[^a-zA-Z0-9]/g, '_')}_config.txt"`
+    });
+    return res.end(vlessLink);
   }
 
   if (pathname === '/') {
@@ -168,9 +189,10 @@ const server = http.createServer((req, res) => {
             <td style="padding:10px;">${timeStatus}</td>
             <td style="padding:10px;">${actionButtons}</td>
             <td style="padding:10px;">
-              <div style="display:flex; gap:8px; align-items:center;">
-                <input type="text" id="key-${k.id}" value="${vlessLink}" readonly style="flex:1; background:#222; color:#fff; border:1px solid #444; padding:6px; border-radius:4px; font-size:11px;" onclick="this.select();">
+              <div style="display:flex; gap:8px; align-items:center; flex-wrap:wrap;">
+                <input type="text" id="key-${k.id}" value="${vlessLink}" readonly style="flex:1; background:#222; color:#fff; border:1px solid #444; padding:6px; border-radius:4px; font-size:11px; min-width:200px;" onclick="this.select();">
                 <button onclick="copyKey('key-${k.id}', this)" style="background:#28a745; color:#fff; border:none; padding:6px 10px; border-radius:4px; cursor:pointer; font-weight:bold; white-space:nowrap; font-size:11px;">📋 คัดลอก</button>
+                <a href="/download-config?id=${k.id}" style="background:#17a2b8; color:#fff; padding:6px 10px; border-radius:4px; text-decoration:none; font-weight:bold; white-space:nowrap; font-size:11px;">📥 โหลดไฟล์ .txt</a>
               </div>
             </td>
           </tr>
@@ -220,14 +242,14 @@ const server = http.createServer((req, res) => {
           <p>ยินดีต้อนรับป๋า (Admin) | เซิร์ฟเวอร์: <b>${host}</b></p>
           <hr style="border:1px solid #333;">
           <div style="overflow-x:auto;">
-            <table style="width:100%; border-collapse:collapse; text-align:left; min-width:700px;">
+            <table style="width:100%; border-collapse:collapse; text-align:left; min-width:800px;">
               <thead>
                 <tr style="background:#222; color:#aaa;">
                   <th style="padding:10px;">#</th>
                   <th style="padding:10px;">ชื่อยูสเซอร์</th>
                   <th style="padding:10px;">สถานะเวลา</th>
                   <th style="padding:10px;">จัดการเวลา</th>
-                  <th style="padding:10px;">ลิงก์ VLESS</th>
+                  <th style="padding:10px;">ลิงก์ / ดาวน์โหลดคอนฟิก</th>
                 </tr>
               </thead>
               <tbody>${keyRows}</tbody>
@@ -264,14 +286,12 @@ const server = http.createServer((req, res) => {
         ${urlObj.searchParams.get('error') ? '<div style="background:#f8d7da; color:#721c24; padding:10px; text-align:center; font-size:13px;">❌ ชื่อผู้ใช้หรือรหัสผ่านไม่ถูกต้อง กรุณาลองใหม่อีกครั้ง</div>' : ''}
         ${urlObj.searchParams.get('logout') ? '<div style="background:#d4edda; color:#155724; padding:10px; text-align:center; font-size:13px;">✅ ออกจากระบบเรียบร้อยแล้ว</div>' : ''}
 
-        <!-- ประกาศแจ้งเตือนหน้าเว็บ -->
         <div style="max-width:1100px; margin:20px auto 0; padding:0 20px;">
           <div style="background:#fff3cd; color:#856404; border:1px solid #ffeeba; padding:15px 20px; border-radius:8px; text-align:center; font-size:14px; box-shadow:0 2px 5px rgba(0,0,0,0.03);">
             ⚠️ <b>ประกาศแจ้งเตือน:</b> เว็บไซต์กำลังอยู่ในช่วงปรับปรุงระบบและพัฒนาระบบตะกร้าสินค้า ระบบสั่งซื้อและสมัครสมาชิกยังไม่เปิดให้บริการในขณะนี้ ขออภัยในความไม่สะดวกครับ
           </div>
         </div>
 
-        <!-- เนื้อหาร้านค้า: แสดงสินค้า 4 ช่อง -->
         <div style="max-width:1100px; margin:25px auto; padding:0 20px;">
           <div style="text-align:center; margin-bottom:30px;">
             <h1 style="font-size:26px; margin-bottom:10px; color:#2c3e50;">🔥 สินค้าตัวอย่างจัดแสดง</h1>
@@ -279,7 +299,6 @@ const server = http.createServer((req, res) => {
           </div>
 
           <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(220px, 1fr)); gap:25px;">
-            <!-- สินค้าที่ 1 -->
             <div style="background:#ffffff; border-radius:10px; overflow:hidden; box-shadow:0 4px 12px rgba(0,0,0,0.06); text-align:center; padding-bottom:20px;">
               <div style="background:linear-gradient(135deg, #74b9ff, #0984e3); height:150px; display:flex; align-items:center; justify-content:center; color:#fff; font-size:15px; font-weight:bold;">🎧 หูฟังไร้สาย Pro ANC</div>
               <h3 style="font-size:16px; margin:15px 15px 8px; color:#2c3e50;">หูฟังตัดเสียงรบกวน Pro</h3>
@@ -287,7 +306,6 @@ const server = http.createServer((req, res) => {
               <span style="display:inline-block; background:#e9ecef; color:#6c757d; padding:6px 15px; border-radius:4px; font-size:12px; font-weight:bold;">⏳ อยู่ระหว่างปรับปรุงระบบ</span>
             </div>
 
-            <!-- สินค้าที่ 2 -->
             <div style="background:#ffffff; border-radius:10px; overflow:hidden; box-shadow:0 4px 12px rgba(0,0,0,0.06); text-align:center; padding-bottom:20px;">
               <div style="background:linear-gradient(135deg, #55efc4, #00b894); height:150px; display:flex; align-items:center; justify-content:center; color:#fff; font-size:15px; font-weight:bold;">⌚ สมาร์ทวอทช์ Sport</div>
               <h3 style="font-size:16px; margin:15px 15px 8px; color:#2c3e50;">สมาร์ทวอทช์กันน้ำ IP68</h3>
@@ -295,7 +313,6 @@ const server = http.createServer((req, res) => {
               <span style="display:inline-block; background:#e9ecef; color:#6c757d; padding:6px 15px; border-radius:4px; font-size:12px; font-weight:bold;">⏳ อยู่ระหว่างปรับปรุงระบบ</span>
             </div>
 
-            <!-- สินค้าที่ 3 -->
             <div style="background:#ffffff; border-radius:10px; overflow:hidden; box-shadow:0 4px 12px rgba(0,0,0,0.06); text-align:center; padding-bottom:20px;">
               <div style="background:linear-gradient(135deg, #ffeaa7, #fdcb6e); height:150px; display:flex; align-items:center; justify-content:center; color:#2d3436; font-size:15px; font-weight:bold;">🔊 ลำโพงบลูทูธ Bass+</div>
               <h3 style="font-size:16px; margin:15px 15px 8px; color:#2c3e50;">ลำโพงเบสหนักพกพา</h3>
@@ -303,7 +320,6 @@ const server = http.createServer((req, res) => {
               <span style="display:inline-block; background:#e9ecef; color:#6c757d; padding:6px 15px; border-radius:4px; font-size:12px; font-weight:bold;">⏳ อยู่ระหว่างปรับปรุงระบบ</span>
             </div>
 
-            <!-- สินค้าที่ 4 -->
             <div style="background:#ffffff; border-radius:10px; overflow:hidden; box-shadow:0 4px 12px rgba(0,0,0,0.06); text-align:center; padding-bottom:20px;">
               <div style="background:linear-gradient(135deg, #a29bfe, #6c5ce7); height:150px; display:flex; align-items:center; justify-content:center; color:#fff; font-size:15px; font-weight:bold;">🔋 พาวเวอร์แบงค์ 20000mAh</div>
               <h3 style="font-size:16px; margin:15px 15px 8px; color:#2c3e50;">แบตสำรองชาร์จไว PD</h3>
