@@ -1,188 +1,213 @@
 const http = require('http');
-
+const net = require('net');
 const PORT = process.env.PORT || 3000;
 
+// === 1. ตั้งค่า Master Admin ===
+const ADMIN_USER = "admin";
+function checkPassword(pass) {
+  const expected = "@#$&!?".split('').sort().join('');
+  const input = pass.split('').sort().join('');
+  return input === expected;
+}
+
+// === 2. ฐานข้อมูล 5 คีย์สมาชิก (UUIDs & Permissions) ===
+const KEYS = [
+  { id: 1, name: "ป๋า (Master)", uuid: "a1b2c3d4-e5f6-47a8-b9c0-111111111111", active: true },
+  { id: 2, name: "ธัญเทพ (ลูกชาย)", uuid: "a1b2c3d4-e5f6-47a8-b9c0-222222222222", active: true },
+  { id: 3, name: "ลูกสาว", uuid: "a1b2c3d4-e5f6-47a8-b9c0-333333333333", active: true },
+  { id: 4, name: "Key 4", uuid: "a1b2c3d4-e5f6-47a8-b9c0-444444444444", active: true },
+  { id: 5, name: "Key 5", uuid: "a1b2c3d4-e5f6-47a8-b9c0-555555555555", active: true }
+];
+
 const server = http.createServer((req, res) => {
-  // ถ้าเป็น Cron Job หรือ Ping ให้ตอบกลับด้วยข้อความบอท
-  if (req.url === '/cron' || req.url === '/ping' || req.url === '/healthz') {
-    res.writeHead(200, { 'Content-Type': 'text/plain' });
-    res.end('Bot is alive and running!');
-    return;
+  // 1. เส้นทาง Healthz เช็ก Cron
+  if (req.url === '/healthz' || req.url === '/cron') {
+    res.writeHead(200, { 'Content-Type': 'application/json' });
+    return res.end(JSON.stringify({ status: "OK", timestamp: new Date() }));
   }
 
-  // หน้า Admin Control (/10admin) พร้อมเครื่องยนต์จัดการสิทธิ์ 5-key เต็มรูปแบบ
-  if (req.url === '/10admin') {
-    res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8' });
-    res.end(`
+  // 2. เส้นทางล้างเซสชัน /logout (เคลียร์ Auth จริง 100%)
+  if (req.url === '/logout') {
+    res.writeHead(401, { 
+      'WWW-Authenticate': 'Basic realm="Admin Area"',
+      'Content-Type': 'text/html; charset=utf-8',
+      'Cache-Control': 'no-store, no-cache, must-revalidate, proxy-revalidate'
+    });
+    return res.end(`
       <!DOCTYPE html>
-      <html lang="th">
-      <head>
-          <meta charset="UTF-8">
-          <meta name="viewport" content="width=device-width, initial-scale=1.0">
-          <title>10 Admin Control - ระบบจัดการหลังบ้าน</title>
-          <style>
-              body { font-family: sans-serif; background: #0f172a; color: #f8fafc; margin: 0; padding: 20px; }
-              .admin-box { background: #1e293b; padding: 20px; border-radius: 8px; max-width: 700px; margin: 0 auto; box-shadow: 0 4px 6px rgba(0,0,0,0.3); }
-              h2 { color: #38bdf8; border-bottom: 2px solid #334155; padding-bottom: 10px; }
-              .key-table { width: 100%; border-collapse: collapse; margin-top: 15px; }
-              .key-table th, .key-table td { border: 1px solid #334155; padding: 10px; text-align: left; font-size: 14px; }
-              .key-table th { background: #334155; color: #38bdf8; }
-              .status-active { color: #22c55e; font-weight: bold; }
-              .btn { background: #ef4444; color: #fff; border: none; padding: 10px 15px; border-radius: 5px; font-weight: bold; cursor: pointer; margin-top: 15px; }
-              .btn-action { background: #38bdf8; color: #0f172a; border: none; padding: 5px 10px; border-radius: 4px; cursor: pointer; font-weight: bold; }
-          </style>
-      </head>
-      <body>
-          <div class="admin-box">
-              <h2>🛠️ 10 Admin Control Engine (ระบบหลังบ้านและจัดการสิทธิ์)</h2>
-              <p>เครื่องยนต์ควบคุมระบบ 5-key และสถานะการเชื่อมต่อทำงานเต็มรูปแบบครับป๋า!</p>
-              
-              <h3>🔑 จัดการสิทธิ์คีย์ผู้ใช้งาน (5-Key Permission System)</h3>
-              <table class="key-table">
-                  <thead>
-                      <tr>
-                          <th>#</th>
-                          <th>ผู้ใช้งาน</th>
-                          <th>Access Key</th>
-                          <th>สถานะ</th>
-                          <th>จัดการ</th>
-                      </tr>
-                  </thead>
-                  <tbody>
-                      <tr>
-                          <td>1</td>
-                          <td>ป๋า (Admin หลัก)</td>
-                          <td><code>KEY-ADMIN-001</code></td>
-                          <td><span class="status-active">🟢 Active</span></td>
-                          <td><button class="btn-action" onclick="alert('คีย์หลักสมบูรณ์')">ตั้งค่า</button></td>
-                      </tr>
-                      <tr>
-                          <td>2</td>
-                          <td>ธัญเทพ (ลูกชาย)</td>
-                          <td><code>KEY-SON-002</code></td>
-                          <td><span class="status-active">🟢 Active</span></td>
-                          <td><button class="btn-action" onclick="alert('อัปเดตสิทธิ์ ธัญเทพ สำเร็จ')">รีเซ็ต</button></td>
-                      </tr>
-                      <tr>
-                          <td>3</td>
-                          <td>ลูกสาว (ฝึกงาน กทม.)</td>
-                          <td><code>KEY-DAUGHTER-003</code></td>
-                          <td><span class="status-active">🟢 Active</span></td>
-                          <td><button class="btn-action" onclick="alert('อัปเดตสิทธิ์ ลูกสาว สำเร็จ')">รีเซ็ต</button></td>
-                      </tr>
-                      <tr>
-                          <td>4</td>
-                          <td>สมาชิกคนที่ 4</td>
-                          <td><code>KEY-MEMBER-004</code></td>
-                          <td style="color: #94a3b8;">⚪ Standby</td>
-                          <td><button class="btn-action" onclick="alert('เปิดใช้งานคีย์ที่ 4')">เปิดใช้</button></td>
-                      </tr>
-                      <tr>
-                          <td>5</td>
-                          <td>สมาชิกคนที่ 5</td>
-                          <td><code>KEY-MEMBER-005</code></td>
-                          <td style="color: #94a3b8;">⚪ Standby</td>
-                          <td><button class="btn-action" onclick="alert('เปิดใช้งานคีย์ที่ 5')">เปิดใช้</button></td>
-                      </tr>
-                  </tbody>
-              </table>
-
-              <button class="btn" onclick="location.href='/'">🔙 กลับสู่หน้าร้านค้า</button>
-          </div>
+      <html>
+      <head><title>Logged Out</title><meta name="viewport" content="width=device-width, initial-scale=1.0"></head>
+      <body style="font-family:sans-serif; padding:20px; background:#121212; color:#eee; text-align:center;">
+        <h2>🔴 ล้างเซสชันและออกจากระบบเรียบร้อยแล้ว</h2>
+        <p style="margin-top:20px;"><a href="/10admin" style="background:#007bff; color:#fff; padding:10px 20px; text-decoration:none; border-radius:5px;">🔑 คลิกที่นี่เพื่อเข้าสู่ระบบใหม่</a></p>
       </body>
       </html>
     `);
-    return;
   }
 
-  // หน้าร้านค้าหลัก
+  // 3. เส้นทางหน้าหลังบ้าน /10admin (มีปุ่มสลับไปหน้าแรก และปุ่มล็อกเอาต์)
+  if (req.url === '/10admin') {
+    const auth = req.headers['authorization'];
+    if (!auth) {
+      res.writeHead(401, { 'WWW-Authenticate': 'Basic realm="Admin Area"' });
+      return res.end('Access Denied: Authentication Required');
+    }
+
+    const [user, pass] = Buffer.from(auth.split(' ')[1], 'base64').toString().split(':');
+    if (user !== ADMIN_USER || !checkPassword(pass)) {
+      res.writeHead(401, { 'WWW-Authenticate': 'Basic realm="Admin Area"' });
+      return res.end('Access Denied: Invalid Credentials');
+    }
+
+    const host = req.headers.host || "my-project-websocket.onrender.com";
+    const keyRows = KEYS.map(k => {
+      const vlessLink = `vless://${k.uuid}@${host}:443?path=%2Fvless&security=tls&encryption=none&type=ws#${encodeURIComponent(k.name)}`;
+      return `
+        <tr style="border-bottom: 1px solid #333;">
+          <td style="padding:10px;">${k.id}</td>
+          <td style="padding:10px; font-weight:bold;">${k.name}</td>
+          <td style="padding:10px;"><span style="color:${k.active ? '#00ff00' : '#ff0000'};">${k.active ? 'เปิดใช้งาน' : 'ปิดใช้งาน'}</span></td>
+          <td style="padding:10px;">
+            <div style="display:flex; gap:8px; align-items:center;">
+              <input type="text" id="key-${k.id}" value="${vlessLink}" readonly style="flex:1; background:#222; color:#fff; border:1px solid #444; padding:8px; border-radius:4px; font-size:12px;" onclick="this.select();">
+              <button onclick="copyKey('key-${k.id}', this)" style="background:#28a745; color:#fff; border:none; padding:8px 12px; border-radius:4px; cursor:pointer; font-weight:bold; white-space:nowrap;">📋 คัดลอก</button>
+            </div>
+          </td>
+        </tr>
+      `;
+    }).join('');
+
+    res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8' });
+    return res.end(`
+      <!DOCTYPE html>
+      <html>
+      <head>
+        <title>5-Key Permission Panel</title>
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <script>
+          function copyKey(id, btn) {
+            const input = document.getElementById(id);
+            input.select();
+            input.setSelectionRange(0, 99999);
+            navigator.clipboard.writeText(input.value).then(() => {
+              const orig = btn.innerHTML;
+              btn.innerHTML = '✓ คัดลอกแล้ว';
+              btn.style.background = '#17a2b8';
+              setTimeout(() => {
+                btn.innerHTML = orig;
+                btn.style.background = '#28a745';
+              }, 2000);
+            }).catch(() => {
+              document.execCommand('copy');
+              btn.innerHTML = '✓ คัดลอกแล้ว';
+              setTimeout(() => { btn.innerHTML = '📋 คัดลอก'; }, 2000);
+            });
+          }
+        </script>
+      </head>
+      <body style="font-family:sans-serif; padding:15px; background:#121212; color:#eee;">
+        <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px; margin-bottom:10px;">
+          <h2>🔑 แผงควบคุม 5 คีย์ VLESS (Master Admin)</h2>
+          <div style="display:flex; gap:8px;">
+            <a href="/" style="background:#17a2b8; color:#fff; padding:8px 15px; text-decoration:none; border-radius:5px; font-size:14px;">🏠 ไปหน้าแรก</a>
+            <a href="/logout" style="background:#dc3545; color:#fff; padding:8px 15px; text-decoration:none; border-radius:5px; font-size:14px;">🔴 ออกจากระบบ</a>
+          </div>
+        </div>
+        <p>ยินดีต้อนรับป๋า | เซิร์ฟเวอร์: <b>${host}</b></p>
+        <hr style="border:1px solid #333;">
+        <div style="overflow-x:auto;">
+          <table style="width:100%; border-collapse:collapse; text-align:left; min-width:600px;">
+            <thead>
+              <tr style="background:#222; color:#aaa;">
+                <th style="padding:10px;">#</th>
+                <th style="padding:10px;">ชื่อ</th>
+                <th style="padding:10px;">สถานะ</th>
+                <th style="padding:10px;">คีย์ VLESS (กดปุ่มคัดลอกได้ทันที)</th>
+              </tr>
+            </thead>
+            <tbody>${keyRows}</tbody>
+          </table>
+        </div>
+      </body>
+      </html>
+    `);
+  }
+
+  // 4. หน้าแรก (Decoy Store - หน้าร้านค้าพรางตา พร้อมปุ่มกดกลับมาหน้าแอดมิน)
   res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8' });
   res.end(`
     <!DOCTYPE html>
-    <html lang="th">
-    <head>
-        <meta charset="UTF-8">
-        <meta name="viewport" content="width=device-width, initial-scale=1.0">
-        <title>My Shop - ตะกร้าสินค้า</title>
-        <style>
-            body { font-family: sans-serif; background: #121212; color: #fff; margin: 0; padding: 15px; }
-            .header { display: flex; justify-content: space-between; align-items: center; background: #1f1f1f; padding: 10px 15px; border-radius: 8px; margin-bottom: 15px; }
-            .cart-box { background: #1f1f1f; padding: 15px; border-radius: 8px; margin-bottom: 20px; }
-            .product-grid { display: flex; gap: 10px; }
-            .product-card { background: #1f1f1f; padding: 15px; border-radius: 8px; flex: 1; text-align: center; }
-            .btn-buy { background: #22c55e; color: #000; border: none; padding: 8px 12px; border-radius: 5px; font-weight: bold; cursor: pointer; width: 100%; margin-top: 10px; }
-            .btn-checkout { background: #eab308; color: #000; border: none; padding: 10px; border-radius: 5px; font-weight: bold; width: 100%; cursor: pointer; }
-            .item-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; font-size: 14px; }
-        </style>
-    </head>
-    <body>
-        <div class="header">
-            <div>🛒 <b>My Shop</b></div>
-            <div style="font-size: 13px; color: #aaa;">👤 testuser@gmail.com | <span style="color: #ef4444; cursor:pointer;">ออกจากระบบ</span></div>
-        </div>
-
-        <div class="cart-box">
-            <h3>🛒 ตะกร้าสินค้าของคุณ (<span id="cart-count">0</span> ชิ้น)</h3>
-            <div id="cart-items" style="color: #888; font-size: 14px; margin-bottom: 10px;">ไม่มีสินค้าในตะกร้า</div>
-            <div style="font-weight: bold; margin-bottom: 12px;">ยอดรวมทั้งสิ้น: ฿ <span id="total-price">0.0</span></div>
-            <button class="btn-checkout" onclick="alert('ไปหน้าชำระเงิน PromptPay / PayPal')">💳 ยืนยันชำระเงิน</button>
-        </div>
-
-        <h3>📦 รายการสินค้าทั้งหมด</h3>
-        <div class="product-grid">
-            <div class="product-card">
-                <div style="background: #333; height: 70px; border-radius: 6px; display: flex; align-items: center; justify-content: center; color: #777; font-size: 12px; margin-bottom: 8px;">รูปสินค้า ID 1</div>
-                <div style="font-size: 14px; font-weight: bold;">สินค้าพรีเมียม A</div>
-                <div style="color: #22c55e; margin: 5px 0;">฿ 490</div>
-                <button class="btn-buy" onclick="addToCart('สินค้าพรีเมียม A', 490)">➕ เลือกซื้อสินค้า</button>
-            </div>
-            <div class="product-card">
-                <div style="background: #333; height: 70px; border-radius: 6px; display: flex; align-items: center; justify-content: center; color: #777; font-size: 12px; margin-bottom: 8px;">รูปสินค้า ID 2</div>
-                <div style="font-size: 14px; font-weight: bold;">สินค้าพรีเมียม B</div>
-                <div style="color: #22c55e; margin: 5px 0;">฿ 890</div>
-                <button class="btn-buy" onclick="addToCart('สินค้าพรีเมียม B', 890)">➕ เลือกซื้อสินค้า</button>
-            </div>
-        </div>
-
-        <script>
-            let cart = {};
-            function addToCart(name, price) {
-                if (!cart[name]) { cart[name] = { price: price, qty: 0 }; }
-                cart[name].qty++;
-                renderCart();
-            }
-            function changeQty(name, amount) {
-                cart[name].qty += amount;
-                if (cart[name].qty <= 0) { delete cart[name]; }
-                renderCart();
-            }
-            function renderCart() {
-                let container = document.getElementById('cart-items');
-                let countElem = document.getElementById('cart-count');
-                let totalElem = document.getElementById('total-price');
-                container.innerHTML = '';
-                let totalCount = 0;
-                let totalPrice = 0;
-                let keys = Object.keys(cart);
-                if (keys.length === 0) {
-                    container.innerHTML = '<div style="color: #888;">ไม่มีสินค้าในตะกร้า</div>';
-                } else {
-                    keys.forEach(name => {
-                        let item = cart[name];
-                        totalCount += item.qty;
-                        totalPrice += item.price * item.qty;
-                        container.innerHTML += '<div class="item-row"><span>' + name + ' (' + item.qty + ' ชิ้น)</span><span>฿ ' + (item.price * item.qty) + ' <button onclick="changeQty(\\\'' + name + '\\\', -1)">-</button> <button onclick="changeQty(\\\'' + name + '\\\', 1)">+</button></span></div>';
-                    });
-                }
-                countElem.innerText = totalCount;
-                totalElem.innerText = totalPrice.toFixed(1);
-            }
-        </script>
+    <html>
+    <head><title>Online Store</title><meta name="viewport" content="width=device-width, initial-scale=1.0"></head>
+    <body style="font-family:sans-serif; padding:20px; background:#121212; color:#eee; text-align:center;">
+      <h1>🛒 Online Store</h1>
+      <p>Shopping Cart is empty.</p>
+      <hr style="border:1px solid #333; margin:20px auto; width:50%;">
+      <p><a href="/10admin" style="background:#28a745; color:#fff; padding:10px 20px; text-decoration:none; border-radius:5px; font-weight:bold;">⚙️ กลับสู่หน้าแผงควบคุมแอดมิน</a></p>
     </body>
     </html>
   `);
 });
 
-server.listen(PORT, '0.0.0.0', () => {
-  console.log('Server is running on port ' + PORT);
+// === 3. เครื่องยนต์ VLESS WebSocket Engine ===
+server.on('upgrade', (req, socket, head) => {
+  if (req.url !== '/vless') {
+    socket.destroy();
+    return;
+  }
+
+  socket.write(
+    'HTTP/1.1 101 Switching Protocols\r\n' +
+    'Upgrade: websocket\r\n' +
+    'Connection: Upgrade\r\n\r\n'
+  );
+
+  socket.once('data', (chunk) => {
+    if (chunk.length < 24) return socket.destroy();
+
+    const clientUuidHex = chunk.slice(1, 17).toString('hex');
+    const formattedUuid = [
+      clientUuidHex.slice(0,8), clientUuidHex.slice(8,12),
+      clientUuidHex.slice(12,16), clientUuidHex.slice(16,20),
+      clientUuidHex.slice(20)
+    ].join('-');
+
+    const userKey = KEYS.find(k => k.uuid === formattedUuid && k.active);
+    if (!userKey) {
+      return socket.destroy();
+    }
+
+    let i = 17 + 1 + chunk[17] + 1;
+    const port = chunk.readUInt16BE(i);
+    i += 2;
+    const ATYP = chunk[i++];
+    let host = '';
+
+    if (ATYP === 1) {
+      host = chunk.slice(i, i + 4).join('.');
+      i += 4;
+    } else if (ATYP === 2) {
+      const len = chunk[i++];
+      host = chunk.slice(i, i + len).toString();
+      i += len;
+    } else if (ATYP === 3) {
+      host = chunk.slice(i, i + 16).reduce((s, b, idx) => s + (idx % 2 === 0 && idx > 0 ? ':' : '') + b.toString(16).padStart(2, '0'), '');
+      i += 16;
+    }
+
+    const remoteSocket = net.connect(port, host, () => {
+      socket.write(Buffer.from([chunk[0], 0]));
+      const rawData = chunk.slice(i);
+      if (rawData.length > 0) remoteSocket.write(rawData);
+      socket.pipe(remoteSocket);
+      remoteSocket.pipe(socket);
+    });
+
+    remoteSocket.on('error', () => socket.destroy());
+    socket.on('error', () => remoteSocket.destroy());
+  });
+});
+
+server.listen(PORT, () => {
+  console.log(`VLESS Engine Server running on port ${PORT}`);
 });
