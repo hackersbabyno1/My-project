@@ -11,16 +11,16 @@ function checkPassword(pass) {
   return input === expected;
 }
 
-// === 2. ฐานข้อมูลคีย์สมาชิก (Key 1 แอดมินหลักถาวร, Key 2+ อัป 30 วันและหมุนเวียนอัตโนมัติเมื่อหมดอายุ) ===
+// === 2. ฐานข้อมูลคีย์สมาชิก (Key 1 แอดมินหลักถาวร, Key 2-5 เป็น test1 ถึง test4 อัป 30 วันและหมุนเวียนอัตโนมัติเมื่อหมดอายุ) ===
 const now = Date.now();
 const oneDay = 24 * 60 * 60 * 1000;
 
 let KEYS = [
   { id: 1, name: "ป๋า (Master)", uuid: "a1b2c3d4-e5f6-47a8-b9c0-111111111111", active: true, expiresAt: 0 },
-  { id: 2, name: "ธัญเทพ (ลูกชาย)", uuid: crypto.randomUUID(), active: true, expiresAt: now + (30 * oneDay) },
-  { id: 3, name: "test1", uuid: crypto.randomUUID(), active: true, expiresAt: now + (15 * oneDay) },
-  { id: 4, name: "test2", uuid: crypto.randomUUID(), active: true, expiresAt: now + (7 * oneDay) },
-  { id: 5, name: "test3", uuid: crypto.randomUUID(), active: true, expiresAt: now + (3 * oneDay) }
+  { id: 2, name: "test1", uuid: crypto.randomUUID(), active: true, expiresAt: now + (30 * oneDay) },
+  { id: 3, name: "test2", uuid: crypto.randomUUID(), active: true, expiresAt: now + (15 * oneDay) },
+  { id: 4, name: "test3", uuid: crypto.randomUUID(), active: true, expiresAt: now + (7 * oneDay) },
+  { id: 5, name: "test4", uuid: crypto.randomUUID(), active: true, expiresAt: now + (3 * oneDay) }
 ];
 
 // ฟังก์ชันตรวจสอบและอัปเดตสถานะคีย์ (ถ้าหมดอายุ ลบตัวเก่า สร้างใหม่ทันที)
@@ -244,13 +244,11 @@ const server = http.createServer((req, res) => {
             event.preventDefault();
             const u = document.getElementById('login-user').value;
             const p = document.getElementById('login-pass').value;
-            // ส่งข้อมูลล็อกอินผ่าน Basic Auth ไปที่ตัวเองเพื่อเช็กสิทธิ์แอดมิน
             const credentials = btoa(u + ':' + p);
             fetch('/', {
               headers: { 'Authorization': 'Basic ' + credentials }
             }).then(res => {
               if (res.redirected || res.ok) {
-                // ถ้าสิทธิ์ถูกต้อง เซิร์ฟเวอร์จะตอบกลับหน้าแอดมิน หรือให้รีโหลดหน้าเว็บใหม่
                 window.location.reload();
               } else {
                 alert('ชื่อผู้ใช้หรือรหัสผ่านไม่ถูกต้อง หรือระบบยังไม่เปิดให้บริการสำหรับบุคคลทั่วไป');
