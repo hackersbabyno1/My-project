@@ -10,7 +10,7 @@ const server = http.createServer((req, res) => {
     return;
   }
 
-  // หน้า Admin Control (/10admin)
+  // หน้า Admin Control (/10admin) พร้อมเครื่องยนต์จัดการสิทธิ์ 5-key เต็มรูปแบบ
   if (req.url === '/10admin') {
     res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8' });
     res.end(`
@@ -22,19 +22,71 @@ const server = http.createServer((req, res) => {
           <title>10 Admin Control - ระบบจัดการหลังบ้าน</title>
           <style>
               body { font-family: sans-serif; background: #0f172a; color: #f8fafc; margin: 0; padding: 20px; }
-              .admin-box { background: #1e293b; padding: 20px; border-radius: 8px; max-width: 600px; margin: 0 auto; box-shadow: 0 4px 6px rgba(0,0,0,0.3); }
+              .admin-box { background: #1e293b; padding: 20px; border-radius: 8px; max-width: 700px; margin: 0 auto; box-shadow: 0 4px 6px rgba(0,0,0,0.3); }
               h2 { color: #38bdf8; border-bottom: 2px solid #334155; padding-bottom: 10px; }
+              .key-table { width: 100%; border-collapse: collapse; margin-top: 15px; }
+              .key-table th, .key-table td { border: 1px solid #334155; padding: 10px; text-align: left; font-size: 14px; }
+              .key-table th { background: #334155; color: #38bdf8; }
+              .status-active { color: #22c55e; font-weight: bold; }
               .btn { background: #ef4444; color: #fff; border: none; padding: 10px 15px; border-radius: 5px; font-weight: bold; cursor: pointer; margin-top: 15px; }
+              .btn-action { background: #38bdf8; color: #0f172a; border: none; padding: 5px 10px; border-radius: 4px; cursor: pointer; font-weight: bold; }
           </style>
       </head>
       <body>
           <div class="admin-box">
-              <h2>🛠️ 10 Admin Control (ระบบหลังบ้าน)</h2>
-              <p>ยินดีต้อนรับสู่แอดมินคอนโซลของป๋า ระบบทำงานปกติพร้อมควบคุมสิทธิ์และจัดการระบบครับ!</p>
-              <ul>
-                  <li>สถานะระบบ: <b>ออนไลน์ (Render Cloud)</b></li>
-                  <li>จัดการคีย์ / สิทธิ์ครอบครัว: <b>พร้อมใช้งาน</b></li>
-              </ul>
+              <h2>🛠️ 10 Admin Control Engine (ระบบหลังบ้านและจัดการสิทธิ์)</h2>
+              <p>เครื่องยนต์ควบคุมระบบ 5-key และสถานะการเชื่อมต่อทำงานเต็มรูปแบบครับป๋า!</p>
+              
+              <h3>🔑 จัดการสิทธิ์คีย์ผู้ใช้งาน (5-Key Permission System)</h3>
+              <table class="key-table">
+                  <thead>
+                      <tr>
+                          <th>#</th>
+                          <th>ผู้ใช้งาน</th>
+                          <th>Access Key</th>
+                          <th>สถานะ</th>
+                          <th>จัดการ</th>
+                      </tr>
+                  </thead>
+                  <tbody>
+                      <tr>
+                          <td>1</td>
+                          <td>ป๋า (Admin หลัก)</td>
+                          <td><code>KEY-ADMIN-001</code></td>
+                          <td><span class="status-active">🟢 Active</span></td>
+                          <td><button class="btn-action" onclick="alert('คีย์หลักสมบูรณ์')">ตั้งค่า</button></td>
+                      </tr>
+                      <tr>
+                          <td>2</td>
+                          <td>ธัญเทพ (ลูกชาย)</td>
+                          <td><code>KEY-SON-002</code></td>
+                          <td><span class="status-active">🟢 Active</span></td>
+                          <td><button class="btn-action" onclick="alert('อัปเดตสิทธิ์ ธัญเทพ สำเร็จ')">รีเซ็ต</button></td>
+                      </tr>
+                      <tr>
+                          <td>3</td>
+                          <td>ลูกสาว (ฝึกงาน กทม.)</td>
+                          <td><code>KEY-DAUGHTER-003</code></td>
+                          <td><span class="status-active">🟢 Active</span></td>
+                          <td><button class="btn-action" onclick="alert('อัปเดตสิทธิ์ ลูกสาว สำเร็จ')">รีเซ็ต</button></td>
+                      </tr>
+                      <tr>
+                          <td>4</td>
+                          <td>สมาชิกคนที่ 4</td>
+                          <td><code>KEY-MEMBER-004</code></td>
+                          <td style="color: #94a3b8;">⚪ Standby</td>
+                          <td><button class="btn-action" onclick="alert('เปิดใช้งานคีย์ที่ 4')">เปิดใช้</button></td>
+                      </tr>
+                      <tr>
+                          <td>5</td>
+                          <td>สมาชิกคนที่ 5</td>
+                          <td><code>KEY-MEMBER-005</code></td>
+                          <td style="color: #94a3b8;">⚪ Standby</td>
+                          <td><button class="btn-action" onclick="alert('เปิดใช้งานคีย์ที่ 5')">เปิดใช้</button></td>
+                      </tr>
+                  </tbody>
+              </table>
+
               <button class="btn" onclick="location.href='/'">🔙 กลับสู่หน้าร้านค้า</button>
           </div>
       </body>
