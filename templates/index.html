@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ bot_name }} - Control Panel</title>
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        html, body { width: 100%; height: 100dvh; overflow: hidden; background: #0f172a; color: #f8fafc; font-family: 'Segoe UI', sans-serif; }
+        .chat-container { width: 100%; height: 100dvh; display: flex; flex-direction: column; background: #1e293b; }
+        .chat-header { background: #0f172a; padding: 14px; font-weight: bold; color: #38bdf8; border-bottom: 1px solid #334155; text-align: center; font-size: 1rem; flex-shrink: 0; }
+        .chat-box { flex: 1; padding: 15px; overflow-y: auto; display: flex; flex-direction: column; gap: 10px; }
+        .message { padding: 10px 14px; border-radius: 12px; max-width: 85%; font-size: 0.9rem; line-height: 1.4; word-break: break-word; }
+        .user-msg { background: #2563eb; color: white; align-self: flex-end; }
+        .bot-msg { background: #334155; color: #f8fafc; align-self: flex-start; }
+        .chat-input-area { display: flex; padding: 12px; background: #0f172a; border-top: 1px solid #334155; flex-shrink: 0; }
+        .chat-input-area input { flex: 1; background: #1e293b; border: 1px solid #475569; color: white; padding: 12px; border-radius: 8px; outline: none; font-size: 0.95rem; }
+        .chat-input-area button { background: #2563eb; color: white; border: none; padding: 0 18px; margin-left: 8px; border-radius: 8px; cursor: pointer; font-weight: bold; }
+    </style>
+</head>
+<body>
+    <div class="chat-container">
+        <div class="chat-header">🤖 {{ bot_name }} (ออนไลน์)</div>
+        <div class="chat-box" id="chatBox">
+            <div class="message bot-msg">👧 คุยกับหนูบ่อยๆ นะคะ หนูจะได้โตไวๆ ❤️💖</div>
+        </div>
+        <div class="chat-input-area">
+            <input type="text" id="userInput" placeholder="พิมพ์ข้อความคุยกับตัวเล็ก..." onkeypress="if(event.key === 'Enter') sendMessage()">
+            <button onclick="sendMessage()">ส่ง</button>
+        </div>
+    </div>
+
+    <script>
+        async function sendMessage() {
+            const input = document.getElementById('userInput');
+            const box = document.getElementById('chatBox');
+            const text = input.value.trim();
+            if (!text) return;
+
+            box.innerHTML += `<div class="message user-msg">${text}</div>`;
+            input.value = '';
+            box.scrollTop = box.scrollHeight;
+
+            try {
+                const res = await fetch('/api/chat', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ message: text })
+                });
+                const data = await res.json();
+                box.innerHTML += `<div class="message bot-msg">${data.reply}</div>`;
+                box.scrollTop = box.scrollHeight;
+            } catch (err) {
+                box.innerHTML += `<div class="message bot-msg">⚠️ เกิดข้อผิดพลาดในการเชื่อมต่อกับตัวเล็กค่ะ</div>`;
+            }
+        }
+    </script>
+</body>
+</html>

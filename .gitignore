@@ -1,0 +1,7 @@
+.env
+.memory.lock
+*.tmp
+__pycache__/
+*.pyc
+.backup_before_merge_*/
+MASTER_MEMORY_420KB.json
