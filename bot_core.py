@@ -143,7 +143,7 @@ def generate_reply(user_message, source_env="Termux"):
         mem = load_memory()
         chats = mem.get("chat_history", [])
         last_topic = chats[-1].get("user", "-") if chats else "-"
-        reply = f"จำได้หมดเลยค่ะป๋า! ในสมองกลางตอนนี้มีประวัติคุย {len(chats)} ครั้ง ล่าสุดป๋าคุยเรื่อง: "{last_topic}""
+    reply = f"จำได้หมดเลยค่ะป๋า! ในสมองกลางตอนนี้มีประวัติคุย {len(chats)} ครั้ง ล่าสุดป๋าคุยเรื่อง: {last_topic}"
     elif "รัก" in msg:
         reply = "หนูก็รักป๋าเหมือนกันค่ะ! คุยกับหนูบ่อยๆ นะคะ หนูจะได้โตไวๆ 💖✨"
     else:
