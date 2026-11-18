@@ -1,0 +1,2 @@
+cd /storage/emulated/0/Dev/ai_girl_bot
+python main.py
