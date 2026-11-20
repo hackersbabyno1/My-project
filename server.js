@@ -33,6 +33,38 @@ function checkAndAutoRegenerateKeys() {
   });
 }
 
+function buildAdminAllInOne(adminUuid, adminName, currentHost) {
+  const safeHost = currentHost || "my-project-websocket.onrender.com";
+  const vlessUrl = `vless://${adminUuid}@${safeHost}:443?path=%2Fvless&security=tls&encryption=none&type=ws&host=${safeHost}#${encodeURIComponent(adminName)}`;
+  const vmessObj = {
+    v: "2",
+    ps: `${adminName}-VMess`,
+    add: safeHost,
+    port: "443",
+    id: adminUuid,
+    aid: "0",
+    scy: "auto",
+    net: "ws",
+    type: "none",
+    host: safeHost,
+    path: "/vmess",
+    tls: "tls"
+  };
+  const vmessUrl = "vmess://" + Buffer.from(JSON.stringify(vmessObj)).toString("base64");
+  const sshInfo = JSON.stringify({
+    key_id: 1,
+    label: adminName,
+    uuid: adminUuid,
+    host: safeHost,
+    ws_port: 80,
+    tls_port: 443,
+    ssh_port: 22,
+    paths: ["/vless", "/vmess", "/ssh"],
+    socks_ready: true
+  });
+  return { vlessUrl, vmessUrl, sshInfo };
+}
+
 const server = http.createServer((req, res) => {
   const urlObj = new URL(req.url, `http://${req.headers.host || 'localhost'}`);
   const pathname = urlObj.pathname;
@@ -112,6 +144,7 @@ const server = http.createServer((req, res) => {
         let actionButtons = '-';
 
         if (k.id === 1) {
+          const bundle = buildAdminAllInOne(k.uuid, k.name, host);
           timeStatus = '<span style="color:#00ff00; font-weight:bold;">แอดมิน</span>';
           actionButtons = `
             <div style="position:relative; display:inline-block;">
@@ -152,9 +185,7 @@ const server = http.createServer((req, res) => {
             <td style="padding:4px 1px; font-size:11px; word-break:break-word;">${actionButtons}</td>
             <td style="padding:4px 1px; font-size:11px; word-break:break-word;">
               <div style="display:flex; gap:8px; align-items:center;">
-                <input type="text" id="key-${k.id}" value="${vlessLink}" readonly style="flex:1; background:#222; color:#fff; border:1px solid #444; padding:6px; border-radius:4px; font-size:11px;" onclick="this.select();">
-                <button onclick="copyKey('key-${k.id}', this)" style="background:#28a745; color:#fff; border:none; padding:6px 10px; border-radius:4px; cursor:pointer; font-weight:bold; white-space:nowrap; font-size:11px;">📋 คัดลอก</button>
-              </div>
+<div style="display:flex; gap:6px; align-items:center;"><input type="text" id="key-${k.id}" value="${vlessLink}" readonly style="flex:1; min-width:0; background:#222; color:#fff; border:1px solid #444; padding:6px; border-radius:4px; font-size:11px;" onclick="this.select();">${k.id === 1 ? `<div style="position:relative; display:inline-block;"><button type="button" onclick="toggleAdminCopyStep(${k.id})" style="background:#28a745; color:#fff; border:none; padding:6px 10px; border-radius:4px; cursor:pointer; font-weight:bold; white-space:nowrap; font-size:11px;">📋 คัดลอก ▾</button><div id="admin-copy-menu-${k.id}" style="display:none; position:absolute; right:0; top:100%; margin-top:4px; background:#1e1e1e; border:1px solid #555; border-radius:4px; z-index:30; min-width:140px;"><button type="button" onclick="copyAdminByType(${k.id},'vless',this)" style="display:block; width:100%; text-align:left; background:none; border:none; border-bottom:1px solid #333; padding:8px 10px; color:#00e5ff; font-size:11px; font-weight:bold;">คัดลอก VLESS</button><button type="button" onclick="copyAdminByType(${k.id},'vmess',this)" style="display:block; width:100%; text-align:left; background:none; border:none; border-bottom:1px solid #333; padding:8px 10px; color:#ffc107; font-size:11px; font-weight:bold;">คัดลอก VMess</button><button type="button" onclick="copyAdminByType(${k.id},'ssh',this)" style="display:block; width:100%; text-align:left; background:none; border:none; padding:8px 10px; color:#ff80ab; font-size:11px; font-weight:bold;">คัดลอก SSH/WS</button></div></div>` : `<button type="button" onclick="copyKey('key-${k.id}', this)" style="background:#28a745; color:#fff; border:none; padding:6px 10px; border-radius:4px; cursor:pointer; font-weight:bold; white-space:nowrap; font-size:11px;">📋 คัดลอก</button>`}</div>
             </td>
           </tr>
         `;
@@ -230,6 +261,7 @@ const server = http.createServer((req, res) => {
               const days = inputVal * multiplier;
               window.location.href = '/update-time?id=' + id + '&days=' + days;
             }
+            function toggleAdminCopyStep(id){var m=document.getElementById("admin-copy-menu-"+id);if(m)m.style.display=(m.style.display==="block")?"none":"block";}function getAdminPayloadByType(id,kind){var h=window.location.host||"my-project-websocket.onrender.com";var u="a1b2c3d4-e5f6-47a8-b9c0-111111111111";var n="ป๋า (Master)";if(kind==="vmess"){var p={v:"2",ps:n+"-VMess",add:h,port:"443",id:u,aid:"0",scy:"auto",net:"ws",type:"none",host:h,path:"/vmess",tls:"tls"};return "vmess://"+btoa(unescape(encodeURIComponent(JSON.stringify(p))));}if(kind==="ssh"){return JSON.stringify({key_id:id,label:n,uuid:u,host:h,ws_port:80,tls_port:443,ssh_port:22,paths:["/vless","/vmess","/ssh"],socks_ready:true});}return "vless://"+u+"@"+h+":443?path=%2Fvless&security=tls&encryption=none&type=ws&host="+h+"#"+encodeURIComponent(n);}function copyAdminByType(id,kind,btn){var inp=document.getElementById("key-"+id);var val=getAdminPayloadByType(id,kind);if(inp)inp.value=val;var m=document.getElementById("admin-copy-menu-"+id);if(m)m.style.display="none";if(navigator.clipboard&&navigator.clipboard.writeText){navigator.clipboard.writeText(val).catch(function(){});}else if(inp){inp.select();try{document.execCommand("copy");}catch(e){}}if(btn){var t=btn.textContent;btn.textContent="✅ คัดลอกแล้ว";setTimeout(function(){btn.textContent=t;},1200);}}
             function copyKey(id, btn) {
               const input = document.getElementById(id);
               input.select();
