@@ -112,7 +112,7 @@ const server = http.createServer((req, res) => {
         let actionButtons = '-';
 
         if (k.id === 1) {
-          timeStatus = '<span style="color:#00ff00; font-weight:bold;">∞ สิทธิ์สูงสุดถาวร (Master)</span>';
+          timeStatus = '<span style="color:#00ff00; font-weight:bold;">แอดมิน</span>';
           actionButtons = `
             <div style="position:relative; display:inline-block;">
               <button onclick="toggleMenu()" style="background:#ffc107; color:#000; border:none; padding:6px 12px; border-radius:4px; cursor:pointer; font-weight:bold; font-size:12px;">⚙️ เมนูป้องกัน</button>
@@ -127,7 +127,7 @@ const server = http.createServer((req, res) => {
           const daysLeft = Math.ceil(timeLeft / (1000 * 60 * 60 * 24));
           
           if (daysLeft > 0) {
-            timeStatus = `<span style="color:#00ff00;">เหลือ <b>${daysLeft}</b> วัน (หมุนเวียนอัตโนมัติ)</span>`;
+            timeStatus = `<span style="color:#00ff00;"><b>${daysLeft}</b> วัน (อัตโนมัติ)</span>`;
           } else {
             timeStatus = `<span style="color:#ff4444; font-weight:bold;">🔄 กำลังสร้างใหม่...</span>`;
           }
@@ -137,8 +137,8 @@ const server = http.createServer((req, res) => {
             <div class="action-cell">
               <input type="number" id="custom-days-${k.id}" value="1" min="1">
               <div class="time-btn-group">
-                <button type="button" class="btn-add" onclick="updateTime(${k.id}, 1)">+เพิ่ม</button>
-                <button type="button" class="btn-sub" onclick="updateTime(${k.id}, -1)">-ลด</button>
+                <button type="button" class="btn-add" onclick="updateTime(${k.id}, 1)" style="white-space:nowrap;">+เพิ่ม</button>
+                <button type="button" class="btn-sub" onclick="updateTime(${k.id}, -1)" style="white-space:nowrap;">-ลด</button>
               </div>
             </div>
           `;
@@ -146,11 +146,11 @@ const server = http.createServer((req, res) => {
 
         return `
           <tr style="border-bottom: 1px solid #333;">
-            <td style="padding:10px;">${k.id}</td>
-            <td style="padding:10px; font-weight:bold;">${k.name}</td>
-            <td style="padding:10px;">${timeStatus}</td>
-            <td style="padding:10px;">${actionButtons}</td>
-            <td style="padding:10px;">
+            <td style="padding:4px 1px; font-size:11px; word-break:break-word;">${k.id}</td>
+            <td style="padding:4px 1px; font-size:11px; font-weight:bold; word-break:break-word;">${k.name}</td>
+            <td style="padding:4px 1px; font-size:11px; word-break:break-word;">${timeStatus}</td>
+            <td style="padding:4px 1px; font-size:11px; word-break:break-word;">${actionButtons}</td>
+            <td style="padding:4px 1px; font-size:11px; word-break:break-word;">
               <div style="display:flex; gap:8px; align-items:center;">
                 <input type="text" id="key-${k.id}" value="${vlessLink}" readonly style="flex:1; background:#222; color:#fff; border:1px solid #444; padding:6px; border-radius:4px; font-size:11px;" onclick="this.select();">
                 <button onclick="copyKey('key-${k.id}', this)" style="background:#28a745; color:#fff; border:none; padding:6px 10px; border-radius:4px; cursor:pointer; font-weight:bold; white-space:nowrap; font-size:11px;">📋 คัดลอก</button>
@@ -256,14 +256,14 @@ const server = http.createServer((req, res) => {
           <p>ยินดีต้อนรับป๋า (Admin) | เซิร์ฟเวอร์: <b>${host}</b></p>
           <hr style="border:1px solid #333;">
           <div style="overflow-x:auto;">
-            <table style="width:100%; border-collapse:collapse; text-align:left; min-width:700px;">
+            <table style="width:100%; border-collapse:collapse; text-align:left; max-width:100%; width:100%; table-layout:fixed;" border-spacing:0;">
               <thead>
                 <tr style="background:#222; color:#aaa;">
-                  <th style="padding:10px;">#</th>
-                  <th style="padding:10px;">ชื่อยูสเซอร์</th>
-                  <th style="padding:10px;">สถานะเวลา</th>
-                  <th style="padding:10px;">จัดการเวลา</th>
-                  <th style="padding:10px;">ลิงก์ VLESS</th>
+                  <th style="padding:4px 1px; font-size:11px; white-space:nowrap; width:12px;">#</th>
+                  <th style="padding:4px 1px; font-size:11px; white-space:nowrap; width:50px;">ชื่อยูสเซอร์</th>
+                  <th style="padding:4px 1px; font-size:11px; white-space:nowrap; width:76px;">สถานะเวลา</th>
+                  <th style="padding:4px 1px; font-size:11px; white-space:nowrap; width:84px;">จัดการเวลา</th>
+                  <th style="padding:4px 1px; font-size:11px; white-space:nowrap;">ลิงก์ VLESS</th>
                 </tr>
               </thead>
               <tbody>${keyRows}</tbody>
