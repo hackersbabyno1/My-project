@@ -17,9 +17,9 @@ const oneDay = 24 * 60 * 60 * 1000;
 
 let KEYS = [
   { id: 1, name: "ป๋า (Master)", uuid: "a1b2c3d4-e5f6-47a8-b9c0-111111111111", active: true, expiresAt: 0 },
-  { id: 2, name: "test1", uuid: crypto.randomUUID(), active: true, expiresAt: now + (30 * oneDay) },
-  { id: 3, name: "test2", uuid: crypto.randomUUID(), active: true, expiresAt: now + (15 * oneDay) },
-  { id: 4, name: "test3", uuid: crypto.randomUUID(), active: true, expiresAt: now + (7 * oneDay) },
+  { id: 2, name: "ครอบครัว 1", uuid: crypto.randomUUID(), active: true, expiresAt: now + (30 * oneDay) },
+  { id: 3, name: "ครอบครัว 2", uuid: crypto.randomUUID(), active: true, expiresAt: now + (15 * oneDay) },
+  { id: 4, name: "ครอบครัว 3", uuid: crypto.randomUUID(), active: true, expiresAt: now + (7 * oneDay) },
   { id: 5, name: "test4", uuid: crypto.randomUUID(), active: true, expiresAt: now + (3 * oneDay) }
 ];
 
@@ -138,6 +138,9 @@ const server = http.createServer((req, res) => {
 
     if (isAdmin) {
       const keyRows = KEYS.map(k => {
+      const famNames = { 2: 'ครอบครัว 1', 3: 'ครอบครัว 2', 4: 'ครอบครัว 3' };
+      const displayName = famNames[Number(k.id)] || k.name;
+
         const vlessLink = `vless://${k.uuid}@${host}:443?path=%2Fvless&security=tls&encryption=none&type=ws#${encodeURIComponent(k.name)}`;
         
         let timeStatus = '';
@@ -180,7 +183,7 @@ const server = http.createServer((req, res) => {
         return `
           <tr style="border-bottom: 1px solid #333;">
             <td style="padding:4px 1px; font-size:11px; word-break:break-word;">${k.id}</td>
-            <td style="padding:4px 1px; font-size:11px; font-weight:bold; word-break:break-word;">${k.name}</td>
+            <td style="padding:4px 1px; font-size:11px; font-weight:bold; word-break:break-word;"><span id="user-status-${k.id}" data-key-id="${k.id}" style="display:inline-block; padding:2px 6px; border-radius:4px; font-weight:bold; background:rgba(255,193,7,0.16); color:#ffc107; border:1px solid rgba(255,193,7,0.45);">⏳ ${displayName}</span></td>
             <td style="padding:4px 1px; font-size:11px; word-break:break-word;">${timeStatus}</td>
             <td style="padding:4px 1px; font-size:11px; word-break:break-word;">${actionButtons}</td>
             <td style="padding:4px 1px; font-size:11px; word-break:break-word;">
@@ -276,6 +279,80 @@ const server = http.createServer((req, res) => {
                 }, 2000);
               });
             }
+
+            function applyUserHealthStyle(el, state, baseName, labelText) {
+              if (!el) return;
+              var icon = '🟢';
+              var fg = '#28a745';
+              var bg = 'rgba(40,167,69,0.16)';
+              var bd = 'rgba(40,167,69,0.55)';
+              if (state === 'yellow') {
+                icon = '🟡';
+                fg = '#ffc107';
+                bg = 'rgba(255,193,7,0.18)';
+                bd = 'rgba(255,193,7,0.6)';
+              } else if (state === 'red') {
+                icon = '🔴';
+                fg = '#ff5252';
+                bg = 'rgba(220,53,69,0.22)';
+                bd = 'rgba(220,53,69,0.65)';
+              }
+              el.style.color = fg;
+              el.style.background = bg;
+              el.style.border = '1px solid ' + bd;
+              el.title = baseName + ' : ' + labelText;
+              el.textContent = icon + ' ' + baseName;
+            }
+            function scanAllUserKeysHealth() {
+              var els = document.querySelectorAll('[id^="user-status-"]');
+              if (!els || !els.length) return;
+              var t0 = performance.now();
+              fetch('/api/key-health', { cache: 'no-store' })
+                .then(function(r) {
+                  if (!r.ok) throw new Error('HTTP_' + r.status);
+                  return r.json();
+                })
+                .then(function(data) {
+                  var rtt = Math.round(performance.now() - t0);
+                  var map = {};
+                  if (data && Array.isArray(data.keys)) {
+                    data.keys.forEach(function(item) { map[String(item.id)] = item; });
+                  }
+                  els.forEach(function(el) {
+                    var kid = el.getAttribute('data-key-id');
+                    var baseName = el.getAttribute('data-base-name');
+                    if (!baseName) {
+                      baseName = (el.textContent || '').replace(/^[🟢🟡🔴⏳]\s*/, '').trim();
+                      el.setAttribute('data-base-name', baseName);
+                    }
+                    var info = map[String(kid)];
+                    if (!info) {
+                      applyUserHealthStyle(el, 'yellow', baseName, 'ไม่พบข้อมูลคีย์');
+                      return;
+                    }
+                    var st = info.state || 'green';
+                    if (st === 'green' && rtt > 2500) {
+                      st = 'yellow';
+                    }
+                    applyUserHealthStyle(el, st, baseName, info.label + ' (' + rtt + 'ms)');
+                  });
+                })
+                .catch(function() {
+                  els.forEach(function(el) {
+                    var baseName = el.getAttribute('data-base-name');
+                    if (!baseName) {
+                      baseName = (el.textContent || '').replace(/^[🟢🟡🔴⏳]\s*/, '').trim();
+                      el.setAttribute('data-base-name', baseName);
+                    }
+                    applyUserHealthStyle(el, 'red', baseName, 'เชื่อมต่อไม่สำเร็จ');
+                  });
+                });
+            }
+            window.addEventListener('DOMContentLoaded', function() {
+              scanAllUserKeysHealth();
+              setInterval(scanAllUserKeysHealth, 8000);
+            });
+
           </script>
         </head>
         <body style="padding:15px;">
@@ -395,6 +472,35 @@ const server = http.createServer((req, res) => {
     `);
   }
 
+  if (pathname === '/api/key-health') {
+    if (!isAdmin) {
+      res.writeHead(401, { 'Content-Type': 'application/json; charset=utf-8' });
+      return res.end(JSON.stringify({ ok: false, error: 'Unauthorized' }));
+    }
+    if (typeof checkAndAutoRegenerateKeys === 'function') {
+      checkAndAutoRegenerateKeys();
+    }
+    const now = Date.now();
+    const list = (Array.isArray(KEYS) ? KEYS : []).map(k => {
+      const isMaster = Number(k.id) === 1;
+      const expired = !isMaster && typeof k.expiresAt === 'number' && k.expiresAt < now;
+      const remMs = isMaster ? null : Math.max(0, (k.expiresAt || now) - now);
+      const remHours = isMaster ? null : Math.round((remMs / 3600000) * 10) / 10;
+      let state = 'green';
+      let label = 'พร้อม';
+      if (!k.active || expired) {
+        state = 'red';
+        label = !k.active ? 'ปิดใช้งาน' : 'หมดอายุ';
+      } else if (!isMaster && remHours <= 24) {
+        state = 'yellow';
+        label = 'ใกล้หมดอายุ';
+      }
+      return { id: k.id, name: k.name, state: state, label: label, active: !!k.active, expired: !!expired };
+    });
+    res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8' });
+    return res.end(JSON.stringify({ ok: true, ts: now, keys: list }));
+  }
+
   if (pathname === '/10admin') {
     if (!isAdmin) {
       res.writeHead(401, { 'WWW-Authenticate': 'Basic realm="Admin Area"' });
@@ -409,18 +515,38 @@ const server = http.createServer((req, res) => {
 });
 
 server.on('upgrade', (req, socket, head) => {
-  if (req.url !== '/vless') {
+  const pathUrl = (req.url || '').split('?')[0];
+  if (!['/vless', '/vmess', '/ssh'].includes(pathUrl)) {
     socket.destroy();
     return;
   }
-  checkAndAutoRegenerateKeys();
+  if (typeof checkAndAutoRegenerateKeys === 'function') {
+    checkAndAutoRegenerateKeys();
+  }
   socket.write(
     'HTTP/1.1 101 Switching Protocols\r\n' +
     'Upgrade: websocket\r\n' +
     'Connection: Upgrade\r\n\r\n'
   );
+
+  if (pathUrl === '/ssh') {
+    socket.once('data', (chunk) => {
+      if (!chunk || chunk.length === 0) return socket.destroy();
+      const targetHost = process.env.SSH_TARGET_HOST || '127.0.0.1';
+      const targetPort = Number(process.env.SSH_TARGET_PORT || 22);
+      const remoteSocket = net.connect(targetPort, targetHost, () => {
+        remoteSocket.write(chunk);
+        socket.pipe(remoteSocket);
+        remoteSocket.pipe(socket);
+      });
+      remoteSocket.on('error', () => socket.destroy());
+      socket.on('error', () => remoteSocket.destroy());
+    });
+    return;
+  }
+
   socket.once('data', (chunk) => {
-    if (chunk.length < 24) return socket.destroy();
+    if (!chunk || chunk.length < 24) return socket.destroy();
     const clientUuidHex = chunk.slice(1, 17).toString('hex');
     const formattedUuid = [
       clientUuidHex.slice(0,8), clientUuidHex.slice(8,12),
@@ -432,21 +558,27 @@ server.on('upgrade', (req, socket, head) => {
     if (!userKey) return socket.destroy();
     if (userKey.id !== 1 && userKey.expiresAt < Date.now()) return socket.destroy();
 
-    let i = 17 + 1 + chunk[17] + 1;
+    let i = 17 + 1 + (chunk[17] || 0) + 1;
+    if (i + 3 > chunk.length) return socket.destroy();
     const port = chunk.readUInt16BE(i);
     i += 2;
     const ATYP = chunk[i++];
     let host = '';
     if (ATYP === 1) {
+      if (i + 4 > chunk.length) return socket.destroy();
       host = chunk.slice(i, i + 4).join('.');
       i += 4;
     } else if (ATYP === 2) {
       const len = chunk[i++];
+      if (i + len > chunk.length) return socket.destroy();
       host = chunk.slice(i, i + len).toString();
       i += len;
     } else if (ATYP === 3) {
+      if (i + 16 > chunk.length) return socket.destroy();
       host = chunk.slice(i, i + 16).reduce((s, b, idx) => s + (idx % 2 === 0 && idx > 0 ? ':' : '') + b.toString(16).padStart(2, '0'), '');
       i += 16;
+    } else {
+      return socket.destroy();
     }
 
     const remoteSocket = net.connect(port, host, () => {
