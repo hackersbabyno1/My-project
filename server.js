@@ -1,9 +1,7 @@
-<<<<<<< HEAD
-ed');
-=======
 const http = require('http');
 const net = require('net');
 const crypto = require('crypto');
+const fs = require('fs');
 const PORT = process.env.PORT || 3000;
 
 // === 1. ตั้งค่า Master Admin ===
@@ -23,7 +21,7 @@ let KEYS = [
   { id: 2, name: "ครอบครัว 1", group: "family", uuid: crypto.randomUUID(), active: true, expiresAt: now + (30 * oneDay) },
   { id: 3, name: "ครอบครัว 2", group: "family", uuid: crypto.randomUUID(), active: true, expiresAt: now + (15 * oneDay) },
   { id: 4, name: "ครอบครัว 3", group: "family", uuid: crypto.randomUUID(), active: true, expiresAt: now + (7 * oneDay) },
-  { id: 5, name: "test4", group: "test", uuid: crypto.randomUUID(), active: true, expiresAt: now + (3 * oneDay) },
+  { id: 5, name: "Test 1", group: "test", uuid: crypto.randomUUID(), active: true, expiresAt: now + (3 * oneDay) },
   { id: 6, name: "ผู้ใช้งานทั่วไป 1", group: "general", uuid: crypto.randomUUID(), active: true, expiresAt: now + (30 * oneDay) }
 ];
 
@@ -58,6 +56,58 @@ function checkAndAutoRegenerateKeys() {
     }
   });
 }
+
+// === MODULE2_PERSIST_CREATE_KEY ===
+const KEYS_STORE_FILE = require('path').join(__dirname, 'keys_store.json');
+
+function saveKeysToDisk() {
+  try {
+    const tmpStore = require('path').join(__dirname, `.keys_store_${process.pid}_${Date.now()}.tmp`);
+    fs.writeFileSync(tmpStore, JSON.stringify({ keys: KEYS, updatedAt: new Date().toISOString() }, null, 2), 'utf8');
+    fs.renameSync(tmpStore, KEYS_STORE_FILE);
+  } catch (e) {
+    console.error('saveKeysToDisk error:', e.message);
+  }
+}
+
+function loadKeysFromDisk() {
+  try {
+    if (!fs.existsSync(KEYS_STORE_FILE)) return;
+    const raw = JSON.parse(fs.readFileSync(KEYS_STORE_FILE, 'utf8'));
+    if (Array.isArray(raw.keys) && raw.keys.length > 0) {
+      KEYS = raw.keys.map(k => ({
+        ...k,
+        group: getKeyGroup(k),
+        uuid: k.uuid || crypto.randomUUID(),
+        active: k.active !== false,
+        expiresAt: Number(k.expiresAt || 0)
+      }));
+    }
+  } catch (e) {
+    console.error('loadKeysFromDisk error:', e.message);
+  }
+}
+
+function createGeneralKey(customName, days) {
+  const maxId = KEYS.reduce((m, item) => Math.max(m, Number(item.id) || 0), 0);
+  const nextId = maxId + 1;
+  const safeDays = Math.max(1, Math.min(3650, Number(days) || 30));
+  const cleanName = (String(customName || '').trim()) || `ผู้ใช้งานทั่วไป ${nextId - 5}`;
+  const newKey = {
+    id: nextId,
+    name: cleanName,
+    group: 'general',
+    uuid: crypto.randomUUID(),
+    active: true,
+    expiresAt: Date.now() + (safeDays * oneDay)
+  };
+  KEYS.push(newKey);
+  saveKeysToDisk();
+  return newKey;
+}
+
+loadKeysFromDisk();
+
 
 function buildAdminAllInOne(adminUuid, adminName, currentHost) {
   const safeHost = currentHost || "my-project-websocket.onrender.com";
@@ -154,7 +204,42 @@ const server = http.createServer((req, res) => {
       <body style="font-family:sans-serif; padding:20px; background:#121212; color:#eee; text-align:center;">
         <h2>🔴 ออกจากระบบแอดมินเรียบร้อยแล้ว</h2>
         <p style="margin-top:20px;"><a href="/" style="background:#007bff; color:#fff; padding:10px 20px; text-decoration:none; border-radius:5px;">🏠 กลับสู่หน้าแรก</a></p>
-      </body>
+      
+<script>
+function toggleKeyGroup(grp) {
+  var btn = document.getElementById('grpBtn_' + grp);
+  var lbl = document.getElementById('grpLbl_' + grp);
+  var open = btn && btn.getAttribute('data-open') === '1';
+  var next = !open;
+  if (btn) btn.setAttribute('data-open', next ? '1' : '0');
+  if (lbl) lbl.textContent = next ? '▼ ซ่อน' : '▶ กดเพื่อแสดง';
+  document.querySelectorAll('tr[data-key-group="' + grp + '"]').forEach(function(r) {
+    r.style.display = next ? '' : 'none';
+  });
+}
+</script>
+
+<script id="__autoCollapseInit">
+(function(){
+  function hideGroupRows(){
+    ['family','test','general'].forEach(function(g){
+      var btn = document.getElementById('grpBtn_' + g);
+      if (btn) btn.setAttribute('data-open','0');
+      var lbl = document.getElementById('grpLbl_' + g);
+      if (lbl) lbl.textContent = '▶ กดเพื่อแสดง';
+      document.querySelectorAll('tr[data-key-group="' + g + '"]').forEach(function(r){
+        r.style.display = 'none';
+      });
+    });
+  }
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', hideGroupRows);
+  } else {
+    hideGroupRows();
+  }
+})();
+</script>
+</body>
       </html>
     `);
   }
@@ -163,7 +248,8 @@ const server = http.createServer((req, res) => {
     const host = req.headers.host || "my-project-websocket.onrender.com";
 
     if (isAdmin) {
-      const keyRows = KEYS.map(k => {
+      const __gCnt = { family:0, test:0, general:0 }; KEYS.forEach(x => { const g = getKeyGroup(x); if (__gCnt[g] !== undefined) __gCnt[g]++; }); const __gSeen = {};
+const keyRows = KEYS.map(k => {
       const famNames = { 2: 'ครอบครัว 1', 3: 'ครอบครัว 2', 4: 'ครอบครัว 3' };
       const displayName = famNames[Number(k.id)] || k.name;
 
@@ -210,21 +296,21 @@ const server = http.createServer((req, res) => {
         }
 
         return `
-          <tr style="border-bottom: 1px solid #333;">
+          ${(() => { const __g = getKeyGroup(k); if (!['family','test','general'].includes(__g) || __gSeen[__g]) return ''; __gSeen[__g] = true; const __t = __g==='family'?'กลุ่มครอบครัว':(__g==='test'?'กลุ่มเทสต์':'กลุ่มผู้ใช้งานทั่วไป'); return '<tr><td colspan="5" style="padding:6px 8px;"><button type="button" id="grpBtn_' + __g + '" data-open="0" onclick="toggleKeyGroup(\'' + __g + '\')" style="width:100%;display:flex;justify-content:space-between;align-items:center;padding:7px 10px;border-radius:6px;background:#1b1b1b;color:#fff;border:1px solid #555;font-size:12px;font-weight:bold;"><span>' + __t + ' (' + __gCnt[__g] + ')</span><span id="grpLbl_' + __g + '">▶ กดเพื่อแสดง</span></button></td></tr>'; })()}${(() => { const __g = getKeyGroup(k); if (!['family','test','general'].includes(__g) || __gSeen[__g]) return ''; __gSeen[__g] = true; const __t = __g==='family'?'กลุ่มครอบครัว':(__g==='test'?'กลุ่มเทสต์':'กลุ่มผู้ใช้งานทั่วไป'); return '<tr><td colspan="5" style="padding:6px 8px;"><button type="button" id="grpBtn_' + __g + '" data-open="0" onclick="toggleKeyGroup(\'' + __g + '\')" style="width:100%;display:flex;justify-content:space-between;align-items:center;padding:7px 10px;border-radius:6px;background:#1b1b1b;color:#fff;border:1px solid #555;font-size:12px;font-weight:bold;"><span>' + __t + ' (' + __gCnt[__g] + ')</span><span id="grpLbl_' + __g + '">▶ กดเพื่อแสดง</span></button></td></tr>'; })()}<tr data-key-group="${getKeyGroup(k)}" style="border-bottom: 1px solid #333;">
             <td style="padding:4px 1px; font-size:11px; word-break:break-word;">${k.id}</td>
             <td style="padding:4px 1px; font-size:11px; font-weight:bold; word-break:break-word;"><span id="user-status-${k.id}" data-key-id="${k.id}" style="display:inline-block; padding:2px 6px; border-radius:4px; font-weight:bold; background:rgba(255,193,7,0.16); color:#ffc107; border:1px solid rgba(255,193,7,0.45);">⏳ ${displayName}</span>${getGroupBadgeHtml(k)}</td>
             <td style="padding:4px 1px; font-size:11px; word-break:break-word;">${timeStatus}</td>
             <td style="padding:4px 1px; font-size:11px; word-break:break-word;">${actionButtons}</td>
             <td style="padding:4px 1px; font-size:11px; word-break:break-word;">
               <div style="display:flex; gap:8px; align-items:center;">
-<div style="display:flex; gap:6px; align-items:center;"><input type="text" id="key-${k.id}" data-uuid="${k.uuid}" data-name="${encodeURIComponent(k.name)}" value="${vlessLink}" readonly style="flex:1; min-width:0; background:#222; color:#fff; border:1px solid #444; padding:6px; border-radius:4px; font-size:11px;" onclick="this.select();"><div style="position:relative; display:inline-block; z-index:99;"><button type="button" onclick="toggleAdminCopyStep(${k.id})" style="background:#28a745; color:#fff; border:none; padding:6px 10px; border-radius:4px; cursor:pointer; font-weight:bold; white-space:nowrap; font-size:11px;">📋 คัดลอก ▾</button><div id="admin-copy-menu-${k.id}" style="display:none; position:fixed; right:12px; background:#1e1e1e; border:1px solid #666; border-radius:6px; box-shadow:0 6px 18px rgba(0,0,0,0.85); z-index:9999; min-width:150px;"><button type="button" onclick="copyAdminByType(${k.id},'vless',this)" style="display:block; width:100%; text-align:left; background:none; border:none; border-bottom:1px solid #333; padding:9px 12px; color:#00e5ff; font-size:11px; font-weight:bold;">คัดลอก VLESS</button><button type="button" onclick="copyAdminByType(${k.id},'vmess',this)" style="display:block; width:100%; text-align:left; background:none; border:none; border-bottom:1px solid #333; padding:9px 12px; color:#ffc107; font-size:11px; font-weight:bold;">คัดลอก VMess</button><button type="button" onclick="copyAdminByType(${k.id},'ssh',this)" style="display:block; width:100%; text-align:left; background:none; border:none; padding:9px 12px; color:#ff80ab; font-size:11px; font-weight:bold;">คัดลอก SSH/WS</button></div></div></div>
+<div style="display:flex; gap:6px; align-items:center;"><input type="text" id="key-${k.id}" data-uuid="${k.uuid}" data-name="${encodeURIComponent(k.name)}" value="${vlessLink}" readonly style="flex:1; min-width:0; background:#222; color:#fff; border:1px solid #444; padding:6px; border-radius:4px; font-size:11px;" onclick="this.select();"><div style="position:relative; display:inline-block; z-index:99;"><button type="button" onclick="toggleAdminCopyStep(${k.id})" style="background:#28a745; color:#fff; border:none; padding:6px 10px; border-radius:4px; cursor:pointer; font-weight:bold; white-space:nowrap; font-size:11px;">📋 คัดลอก ▾</button><div id="admin-copy-menu-${k.id}" style="display:none; position:fixed; right:12px; background:#1e1e1e; border:1px solid #666; border-radius:6px; box-shadow:0 6px 18px rgba(0,0,0,0.85); z-index:9999; min-width:150px;"><button type="button" onclick="copyAdminByType(${k.id},'vless',this)" style="display:block; width:100%; text-align:left; background:none; border:none; border-bottom:1px solid #333; padding:9px 12px; color:#00e5ff; font-size:11px; font-weight:bold;">คัดลอกคีย์ VLESS</button><button type="button" onclick="copyAdminByType(${k.id},'vmess',this)" style="display:block; width:100%; text-align:left; background:none; border:none; border-bottom:1px solid #333; padding:9px 12px; color:#ffc107; font-size:11px; font-weight:bold;">คัดลอกคีย์ VMess</button><button type="button" onclick="copyAdminByType(${k.id},'ssh',this)" style="display:block; width:100%; text-align:left; background:none; border:none; padding:9px 12px; color:#ff80ab; font-size:11px; font-weight:bold;">คัดลอกคีย์ SSH/WS</button></div></div></div>
             </td>
           </tr>
         `;
       }).join('');
 
       res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8' });
-      return res.end(`
+      return ("<div id=\"generalKeyBox\" style=\"margin:14px auto; max-width:900px; padding:12px; border:1px solid #2e7d32; border-radius:8px; background:#0c1f12; color:#e8f5e9;\">\n  <b>👤 รับคีย์ทดลองกลุ่มผู้ใช้งานทั่วไป (7 วัน):</b>\n  <button type=\"button\" onclick=\"claimGeneralKey()\" style=\"margin-left:8px; padding:6px 12px; border-radius:6px; border:none; background:#2e7d32; color:#fff; font-weight:bold; cursor:pointer;\">รับคีย์ผู้ใช้งานทั่วไป</button>\n  <div id=\"claimGeneralOut\" style=\"margin-top:8px; font-family:monospace; font-size:12px; color:#a5d6a7; word-break:break-all;\"></div>\n</div>\n<script>\nasync function claimGeneralKey() {\n  const out = document.getElementById('claimGeneralOut');\n  out.textContent = 'กำลังออกคีย์...';\n  try {\n    const r = await fetch('/api/claim-general-key', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: '{}' });\n    const j = await r.json();\n    if (j.ok) {\n      out.textContent = 'คีย์ #' + j.id + ' [' + j.name + '] UUID: ' + j.uuid;\n    } else {\n      out.textContent = 'ออกคีย์ไม่สำเร็จ';\n    }\n  } catch (e) {\n    out.textContent = 'เชื่อมต่อไม่สำเร็จ: ' + e.message;\n  }\n}\n</script>") + res.end(`
         <!DOCTYPE html>
         <html>
         <head>
@@ -405,6 +491,41 @@ const server = http.createServer((req, res) => {
                 </tr>
               </thead>
               <tbody>${keyRows}</tbody>
+<script id="__clickToggleReady">
+(function() {
+  function setGrpRows(grp, open) {
+    var btn = document.getElementById('grpBtn_' + grp);
+    var lbl = document.getElementById('grpLbl_' + grp);
+    if (btn) btn.setAttribute('data-open', open ? '1' : '0');
+    if (lbl) lbl.textContent = open ? '▼ ซ่อน' : '▶ กดเพื่อแสดง';
+    var tbody = btn && btn.closest ? btn.closest('tbody') : document.querySelector('tbody');
+    if (!tbody) return;
+    var headerTr = btn.closest('tr');
+    var cur = headerTr ? headerTr.nextElementSibling : null;
+    while (cur) {
+      if (cur.querySelector && cur.querySelector('button[id^="grpBtn_"]')) break;
+      cur.style.display = open ? '' : 'none';
+      cur = cur.nextElementSibling;
+    }
+  }
+
+  window.toggleKeyGroup = function(grp) {
+    if (!grp) return;
+    var btn = document.getElementById('grpBtn_' + grp);
+    var isOpen = btn && btn.getAttribute('data-open') === '1';
+    setGrpRows(grp, !isOpen);
+  };
+
+  document.addEventListener('click', function(e) {
+    var b = e.target && e.target.closest ? e.target.closest('button[id^="grpBtn_"]') : null;
+    if (!b) return;
+    e.preventDefault();
+    e.stopPropagation();
+    window.toggleKeyGroup(b.id.replace('grpBtn_', ''));
+  }, true);
+})();
+</script>
+
             </table>
           </div>
         </body>
@@ -496,9 +617,203 @@ const server = http.createServer((req, res) => {
             </div>
           </div>
         </div>
-      </body>
+      
+<script id="__grpCollapseFinal">
+function toggleKeyGroup(grp) {
+  var btn = document.getElementById('grpBtn_' + grp);
+  var lbl = document.getElementById('grpLbl_' + grp);
+  var open = btn && btn.getAttribute('data-open') === '1';
+  var next = !open;
+  if (btn) btn.setAttribute('data-open', next ? '1' : '0');
+  if (lbl) lbl.textContent = next ? '▼ ซ่อน' : '▶ กดเพื่อแสดง';
+  document.querySelectorAll('tr[data-key-group="' + grp + '"]').forEach(function(r) {
+    r.style.display = next ? '' : 'none';
+  });
+}
+(function(){
+  function hideAllGroups(){
+    ['family','test','general'].forEach(function(g){
+      var btn = document.getElementById('grpBtn_' + g);
+      if (btn) btn.setAttribute('data-open','0');
+      var lbl = document.getElementById('grpLbl_' + g);
+      if (lbl) lbl.textContent = '▶ กดเพื่อแสดง';
+      document.querySelectorAll('tr[data-key-group="' + g + '"]').forEach(function(r){
+        r.style.display = 'none';
+      });
+    });
+  }
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', hideAllGroups);
+  } else {
+    hideAllGroups();
+  }
+  setTimeout(hideAllGroups, 150);
+})();
+</script>
+
+<script id="__grpInsertAndCollapse">
+function toggleKeyGroup(grp) {
+  var btn = document.getElementById('grpBtn_' + grp);
+  var lbl = document.getElementById('grpLbl_' + grp);
+  var open = btn && btn.getAttribute('data-open') === '1';
+  var next = !open;
+  if (btn) btn.setAttribute('data-open', next ? '1' : '0');
+  if (lbl) lbl.textContent = next ? '▼ ซ่อน' : '▶ กดเพื่อแสดง';
+  document.querySelectorAll('tr[data-key-group="' + grp + '"]').forEach(function(r) {
+    r.style.display = next ? '' : 'none';
+  });
+}
+(function() {
+  function detectGroup(txt) {
+    var t = (txt || '').toLowerCase();
+    if (t.indexOf('ครอบครัว') !== -1 || t.indexOf('family') !== -1) return 'family';
+    if (t.indexOf('เทสต์') !== -1 || t.indexOf('test') !== -1) return 'test';
+    if (t.indexOf('ทั่วไป') !== -1 || t.indexOf('general') !== -1) return 'general';
+    return '';
+  }
+  function buildGroups() {
+    var tbody = document.querySelector('tbody');
+    if (!tbody || document.getElementById('grpBtn_family')) return;
+    var rows = Array.prototype.slice.call(tbody.querySelectorAll('tr'));
+    var buckets = { family: [], test: [], general: [] };
+    rows.forEach(function(tr) {
+      if (tr.querySelector('button[id^="grpBtn_"]')) return;
+      var g = detectGroup(tr.innerText || tr.textContent || '');
+      if (g && buckets[g]) {
+        tr.setAttribute('data-key-group', g);
+        tr.style.display = 'none';
+        buckets[g].push(tr);
+      }
+    });
+    var titles = {
+      family: 'กลุ่มครอบครัว',
+      test: 'กลุ่มเทสต์',
+      general: 'กลุ่มผู้ใช้งานทั่วไป'
+    };
+    ['family', 'test', 'general'].forEach(function(g) {
+      var list = buckets[g];
+      if (!list.length) return;
+      var headerTr = document.createElement('tr');
+      var td = document.createElement('td');
+      td.setAttribute('colspan', '5');
+      td.style.padding = '6px 8px';
+      var btn = document.createElement('button');
+      btn.type = 'button';
+      btn.id = 'grpBtn_' + g;
+      btn.setAttribute('data-open', '0');
+      btn.style.cssText = 'width:100%;display:flex;justify-content:space-between;align-items:center;padding:7px 10px;border-radius:6px;background:#1b1b1b;color:#fff;border:1px solid #555;font-size:12px;font-weight:bold;cursor:pointer;';
+      var spTitle = document.createElement('span');
+      spTitle.textContent = titles[g] + ' (' + list.length + ')';
+      var spLbl = document.createElement('span');
+      spLbl.id = 'grpLbl_' + g;
+      spLbl.textContent = '▶ กดเพื่อแสดง';
+      btn.appendChild(spTitle);
+      btn.appendChild(spLbl);
+      btn.onclick = function() { toggleKeyGroup(g); };
+      td.appendChild(btn);
+      headerTr.appendChild(td);
+      tbody.insertBefore(headerTr, list[0]);
+    });
+  }
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', buildGroups);
+  } else {
+    buildGroups();
+  }
+  setTimeout(buildGroups, 120);
+})();
+</script>
+
+<script id="__fixClickCollapse">
+(function() {
+  function setGroupState(grp, isOpen) {
+    var btn = document.getElementById('grpBtn_' + grp);
+    var lbl = document.getElementById('grpLbl_' + grp);
+    if (btn) btn.setAttribute('data-open', isOpen ? '1' : '0');
+    if (lbl) lbl.textContent = isOpen ? '▼ ซ่อน' : '▶ กดเพื่อแสดง';
+    var rows = document.querySelectorAll('tr[data-key-group="' + grp + '"]');
+    for (var i = 0; i < rows.length; i++) {
+      rows[i].style.setProperty('display', isOpen ? 'table-row' : 'none', 'important');
+    }
+  }
+
+  window.toggleKeyGroup = function(grp) {
+    if (!grp) return;
+    var btn = document.getElementById('grpBtn_' + grp);
+    var curOpen = btn && btn.getAttribute('data-open') === '1';
+    setGroupState(grp, !curOpen);
+  };
+
+  document.addEventListener('click', function(ev) {
+    var target = ev.target;
+    if (!target || !target.closest) return;
+    var btn = target.closest('button[id^="grpBtn_"]');
+    if (!btn) return;
+    var grp = btn.id.replace('grpBtn_', '');
+    window.toggleKeyGroup(grp);
+  }, true);
+
+  function collapseOnStart() {
+    ['family', 'test', 'general'].forEach(function(g) {
+      var btn = document.getElementById('grpBtn_' + g);
+      if (btn && btn.getAttribute('data-open') !== '1') {
+        setGroupState(g, false);
+      }
+    });
+  }
+
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', collapseOnStart);
+  } else {
+    collapseOnStart();
+  }
+  setTimeout(collapseOnStart, 200);
+  setTimeout(collapseOnStart, 600);
+})();
+</script>
+</body>
       </html>
     `);
+  }
+
+  if (pathname === '/api/create-key' && req.method === 'POST') {
+    const auth = req.headers['authorization'] || '';
+    if (!auth.startsWith('Basic ') || Buffer.from(auth.slice(6), 'base64').toString() !== `${ADMIN_USER}:${ADMIN_PASS}`) {
+      res.writeHead(401, { 'Content-Type': 'application/json; charset=utf-8' });
+      res.end(JSON.stringify({ ok: false, error: 'Unauthorized' }));
+      return;
+    }
+    let body = '';
+    req.on('data', chunk => { body += chunk.toString('utf8'); });
+    req.on('end', () => {
+      try {
+        const parsed = body ? JSON.parse(body) : {};
+        const created = createGeneralKey(parsed.name, parsed.days || 30);
+        res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8' });
+        res.end(JSON.stringify({ ok: true, key: created, totalKeys: KEYS.length }));
+      } catch (err) {
+        res.writeHead(400, { 'Content-Type': 'application/json; charset=utf-8' });
+        res.end(JSON.stringify({ ok: false, error: err.message }));
+      }
+    });
+    return;
+  }
+
+  if (pathname === '/api/claim-general-key' && req.method === 'POST') {
+    let body = '';
+    req.on('data', chunk => { body += chunk.toString('utf8'); });
+    req.on('end', () => {
+      try {
+        const parsed = body ? JSON.parse(body) : {};
+        const created = createGeneralKey(parsed.name || '', 7);
+        res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8' });
+        res.end(JSON.stringify({ ok: true, id: created.id, name: created.name, group: created.group, uuid: created.uuid, days: 7 }));
+      } catch (err) {
+        res.writeHead(500, { 'Content-Type': 'application/json; charset=utf-8' });
+        res.end(JSON.stringify({ ok: false, error: err.message }));
+      }
+    });
+    return;
   }
 
   if (pathname === '/api/key-health') {
@@ -533,8 +848,7 @@ const server = http.createServer((req, res) => {
   if (pathname === '/10admin') {
     if (!isAdmin) {
       res.writeHead(401, { 'WWW-Authenticate': 'Basic realm="Admin Area"' });
-      return res.end('Access Denied');
->>>>>>> 3283990f449fbef01ff69098b63f315c8ae6deed
+      return ("<div id=\"adminCreateGenBox\" style=\"margin:12px 0; padding:10px; border:1px solid #2e7d32; border-radius:8px; background:#0c1f12; display:flex; flex-wrap:wrap; gap:8px; align-items:center;\">\n  <b style=\"color:#81c784;\">➕ สร้างคีย์ใหม่ไม่จำกัด (ผู้ใช้งานทั่วไป):</b>\n  <input id=\"newGenName\" type=\"text\" placeholder=\"ชื่อผู้ใช้ (เว้นว่าง=ออโต้)\" style=\"padding:6px 8px; border-radius:6px; border:1px solid #388e3c; background:#07130b; color:#fff;\">\n  <input id=\"newGenDays\" type=\"number\" value=\"30\" min=\"1\" max=\"3650\" style=\"width:72px; padding:6px 8px; border-radius:6px; border:1px solid #388e3c; background:#07130b; color:#fff;\">\n  <button type=\"button\" onclick=\"createUnlimitedGeneralKey()\" style=\"padding:6px 12px; border-radius:6px; border:none; background:#2e7d32; color:#fff; font-weight:bold; cursor:pointer;\">สร้างคีย์ทันที</button>\n  <span id=\"createGenResult\" style=\"color:#a5d6a7; font-size:12px;\"></span>\n</div>\n<script>\nasync function createUnlimitedGeneralKey() {\n  const nameVal = document.getElementById('newGenName').value;\n  const daysVal = document.getElementById('newGenDays').value || 30;\n  const resEl = document.getElementById('createGenResult');\n  resEl.textContent = 'กำลังสร้าง...';\n  try {\n    const r = await fetch('/api/create-key', {\n      method: 'POST',\n      headers: { 'Content-Type': 'application/json' },\n      body: JSON.stringify({ name: nameVal, days: Number(daysVal) })\n    });\n    const j = await r.json();\n    if (j.ok) {\n      resEl.textContent = 'สร้างสำเร็จ #' + j.key.id + ' (' + j.key.name + ')';\n      setTimeout(() => location.reload(), 600);\n    } else {\n      resEl.textContent = 'ไม่สำเร็จ: ' + (j.error || 'error');\n    }\n  } catch (e) {\n    resEl.textContent = 'ผิดพลาด: ' + e.message;\n  }\n}\n</script>") + res.end('Access Denied');
     }
     res.writeHead(302, { 'Location': '/' });
     return res.end();
