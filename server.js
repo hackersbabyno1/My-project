@@ -16,17 +16,40 @@ const now = Date.now();
 const oneDay = 24 * 60 * 60 * 1000;
 
 let KEYS = [
-  { id: 1, name: "ป๋า (Master)", uuid: "a1b2c3d4-e5f6-47a8-b9c0-111111111111", active: true, expiresAt: 0 },
-  { id: 2, name: "ครอบครัว 1", uuid: crypto.randomUUID(), active: true, expiresAt: now + (30 * oneDay) },
-  { id: 3, name: "ครอบครัว 2", uuid: crypto.randomUUID(), active: true, expiresAt: now + (15 * oneDay) },
-  { id: 4, name: "ครอบครัว 3", uuid: crypto.randomUUID(), active: true, expiresAt: now + (7 * oneDay) },
-  { id: 5, name: "test4", uuid: crypto.randomUUID(), active: true, expiresAt: now + (3 * oneDay) }
+  { id: 1, name: "ป๋า (Master)", group: "admin", uuid: "a1b2c3d4-e5f6-47a8-b9c0-111111111111", active: true, expiresAt: 0 },
+  { id: 2, name: "ครอบครัว 1", group: "family", uuid: crypto.randomUUID(), active: true, expiresAt: now + (30 * oneDay) },
+  { id: 3, name: "ครอบครัว 2", group: "family", uuid: crypto.randomUUID(), active: true, expiresAt: now + (15 * oneDay) },
+  { id: 4, name: "ครอบครัว 3", group: "family", uuid: crypto.randomUUID(), active: true, expiresAt: now + (7 * oneDay) },
+  { id: 5, name: "test4", group: "test", uuid: crypto.randomUUID(), active: true, expiresAt: now + (3 * oneDay) },
+  { id: 6, name: "ผู้ใช้งานทั่วไป 1", group: "general", uuid: crypto.randomUUID(), active: true, expiresAt: now + (30 * oneDay) }
 ];
+
+function getKeyGroup(k) {
+  if (k && k.group) return k.group;
+  const id = Number(k && k.id);
+  if (id === 1) return 'admin';
+  if (id >= 2 && id <= 4) return 'family';
+  if (id === 5) return 'test';
+  return 'general';
+}
+
+function getGroupBadgeHtml(k) {
+  const grp = getKeyGroup(k);
+  const map = {
+    admin:   { label: '👑 แอดมิน',         bg: 'rgba(255,193,7,0.18)',  color: '#ffd54f', border: 'rgba(255,193,7,0.45)' },
+    family:  { label: '🏠 ครอบครัว',       bg: 'rgba(0,229,255,0.15)',  color: '#4dd0e1', border: 'rgba(0,229,255,0.40)' },
+    test:    { label: '🧪 เทสต์',          bg: 'rgba(255,128,171,0.15)',color: '#ff80ab', border: 'rgba(255,128,171,0.40)' },
+    general: { label: '👤 ผู้ใช้งานทั่วไป', bg: 'rgba(76,175,80,0.18)',  color: '#81c784', border: 'rgba(76,175,80,0.45)' }
+  };
+  const m = map[grp] || map.general;
+  return `<div style="margin-top:3px;"><span style="display:inline-block; padding:1px 5px; border-radius:4px; font-size:10px; font-weight:bold; background:${m.bg}; color:${m.color}; border:1px solid ${m.border};">${m.label}</span></div>`;
+}
 
 function checkAndAutoRegenerateKeys() {
   const currentTime = Date.now();
   KEYS.forEach(k => {
-    if (k.id !== 1 && k.expiresAt > 0 && k.expiresAt <= currentTime) {
+    const grp = getKeyGroup(k);
+    if (k.id !== 1 && grp !== 'general' && k.expiresAt > 0 && k.expiresAt <= currentTime) {
       k.uuid = crypto.randomUUID();
       k.expiresAt = currentTime + (30 * oneDay);
     }
@@ -162,10 +185,13 @@ const server = http.createServer((req, res) => {
           const timeLeft = k.expiresAt - Date.now();
           const daysLeft = Math.ceil(timeLeft / (1000 * 60 * 60 * 24));
           
+          const isGeneral = getKeyGroup(k) === 'general';
           if (daysLeft > 0) {
-            timeStatus = `<span style="color:#00ff00;"><b>${daysLeft}</b> วัน (อัตโนมัติ)</span>`;
+            timeStatus = `<span style="color:#00ff00;"><b>${daysLeft}</b> วัน (${isGeneral ? 'ทั่วไป' : 'อัตโนมัติ'})</span>`;
           } else {
-            timeStatus = `<span style="color:#ff4444; font-weight:bold;">🔄 กำลังสร้างใหม่...</span>`;
+            timeStatus = isGeneral
+              ? `<span style="color:#ff4444; font-weight:bold;">⛔ หมดอายุ</span>`
+              : `<span style="color:#ff4444; font-weight:bold;">🔄 กำลังสร้างใหม่...</span>`;
           }
 
           // จัดเรียงปุ่มจัดการเวลา: ช่องกรอกอยู่บน | ปุ่มเขียวซ้าย | ปุ่มแดงขวา
@@ -183,7 +209,7 @@ const server = http.createServer((req, res) => {
         return `
           <tr style="border-bottom: 1px solid #333;">
             <td style="padding:4px 1px; font-size:11px; word-break:break-word;">${k.id}</td>
-            <td style="padding:4px 1px; font-size:11px; font-weight:bold; word-break:break-word;"><span id="user-status-${k.id}" data-key-id="${k.id}" style="display:inline-block; padding:2px 6px; border-radius:4px; font-weight:bold; background:rgba(255,193,7,0.16); color:#ffc107; border:1px solid rgba(255,193,7,0.45);">⏳ ${displayName}</span></td>
+            <td style="padding:4px 1px; font-size:11px; font-weight:bold; word-break:break-word;"><span id="user-status-${k.id}" data-key-id="${k.id}" style="display:inline-block; padding:2px 6px; border-radius:4px; font-weight:bold; background:rgba(255,193,7,0.16); color:#ffc107; border:1px solid rgba(255,193,7,0.45);">⏳ ${displayName}</span>${getGroupBadgeHtml(k)}</td>
             <td style="padding:4px 1px; font-size:11px; word-break:break-word;">${timeStatus}</td>
             <td style="padding:4px 1px; font-size:11px; word-break:break-word;">${actionButtons}</td>
             <td style="padding:4px 1px; font-size:11px; word-break:break-word;">
@@ -495,7 +521,7 @@ const server = http.createServer((req, res) => {
         state = 'yellow';
         label = 'ใกล้หมดอายุ';
       }
-      return { id: k.id, name: k.name, state: state, label: label, active: !!k.active, expired: !!expired };
+      return { id: k.id, name: k.name, group: getKeyGroup(k), state: state, label: label, active: !!k.active, expired: !!expired };
     });
     res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8' });
     return res.end(JSON.stringify({ ok: true, ts: now, keys: list }));
