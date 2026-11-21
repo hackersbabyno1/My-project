@@ -1,0 +1,123 @@
+{
+  "members": {
+    "ป๋า": {
+      "ok_count": 1,
+      "denied_count": 0,
+      "last_seen": "2026-11-20 03:30:09",
+      "last_action": "net_session"
+    },
+    "แม่": {
+      "ok_count": 2,
+      "denied_count": 0,
+      "last_seen": "2026-11-20 04:05:58",
+      "last_action": "vless_key_check"
+    },
+    "แอดมิน": {
+      "ok_count": 1,
+      "denied_count": 0,
+      "last_seen": "2026-11-20 04:05:58",
+      "last_action": "vless_key_check"
+    },
+    "เจตนา": {
+      "ok_count": 1,
+      "denied_count": 0,
+      "last_seen": "2026-11-20 04:05:58",
+      "last_action": "vless_key_check"
+    },
+    "ธัญเทพ": {
+      "ok_count": 1,
+      "denied_count": 0,
+      "last_seen": "2026-11-20 04:05:58",
+      "last_action": "vless_key_check"
+    },
+    "ลูกค้าเทสต์": {
+      "ok_count": 1,
+      "denied_count": 0,
+      "last_seen": "2026-11-20 04:05:58",
+      "last_action": "vless_key_check"
+    }
+  },
+  "recent_events": [
+    {
+      "ts": 1795120209,
+      "member": "ป๋า",
+      "authorized": true,
+      "action": "net_session",
+      "payload": {
+        "device": "termux"
+      },
+      "time_th": "2026-11-20 03:30:09"
+    },
+    {
+      "ts": 1795120209,
+      "member": "แม่",
+      "authorized": true,
+      "action": "net_session",
+      "payload": {
+        "device": "mobile"
+      },
+      "time_th": "2026-11-20 03:30:09"
+    },
+    {
+      "ts": 1795122358,
+      "member": "แอดมิน",
+      "authorized": true,
+      "action": "vless_key_check",
+      "payload": {
+        "slot": 1,
+        "role": "admin",
+        "full_access": true
+      },
+      "time_th": "2026-11-20 04:05:58"
+    },
+    {
+      "ts": 1795122358,
+      "member": "แม่",
+      "authorized": true,
+      "action": "vless_key_check",
+      "payload": {
+        "slot": 2,
+        "role": "family",
+        "full_access": false
+      },
+      "time_th": "2026-11-20 04:05:58"
+    },
+    {
+      "ts": 1795122358,
+      "member": "เจตนา",
+      "authorized": true,
+      "action": "vless_key_check",
+      "payload": {
+        "slot": 3,
+        "role": "family",
+        "full_access": false
+      },
+      "time_th": "2026-11-20 04:05:58"
+    },
+    {
+      "ts": 1795122358,
+      "member": "ธัญเทพ",
+      "authorized": true,
+      "action": "vless_key_check",
+      "payload": {
+        "slot": 4,
+        "role": "family",
+        "full_access": false
+      },
+      "time_th": "2026-11-20 04:05:58"
+    },
+    {
+      "ts": 1795122358,
+      "member": "ลูกค้าเทสต์",
+      "authorized": true,
+      "action": "vless_key_check",
+      "payload": {
+        "slot": 5,
+        "role": "customer_test",
+        "full_access": false
+      },
+      "time_th": "2026-11-20 04:05:58"
+    }
+  ],
+  "updated_at_th": "2026-11-20 04:05:58"
+}

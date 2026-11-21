@@ -1,0 +1,49 @@
+{
+  "created_at_th_24h": "2026-11-20 00:39:26",
+  "policy": "never_delete_old_code_create_new_files_only",
+  "repo_dir": "/data/data/com.termux/files/home/work_new/github_render_clean",
+  "github_files_total": 12,
+  "github_code_files": [
+    "app.py",
+    "bot.sh",
+    "bot_core.py",
+    "main.py",
+    "new_scripts/sync_github_memory_new.py"
+  ],
+  "memory_json_type": "dict",
+  "memory_json_summary": [
+    "user_name",
+    "birth_date",
+    "version",
+    "last_unified",
+    "total_memories",
+    "history",
+    "termux_code_files",
+    "termux_commands",
+    "chat_history",
+    "workspace_logs",
+    "custom_snippets",
+    "health_logs"
+  ],
+  "work_new_json_files": [
+    "work_new/ai_girl_bot/data/all_files_scan_24h.json",
+    "work_new/ai_girl_bot/data/brother_20rows_baseline.json",
+    "work_new/ai_girl_bot/data/brother_25rows_baseline.json",
+    "work_new/ai_girl_bot/data/brother_all_health_20rows_latest.json",
+    "work_new/ai_girl_bot/data/brother_all_health_25rows_latest.json",
+    "work_new/ai_girl_bot/data/brother_all_health_latest.json",
+    "work_new/ai_girl_bot/data/memory.json",
+    "work_new/ai_girl_bot/data/sibling_bridge_state.json",
+    "work_new/ai_girl_bot/data/sibling_search_exchange.json",
+    "work_new/ai_girl_bot/data/sibling_vps_talk.json",
+    "work_new/ai_girl_bot/data/sister_lock_ack.json",
+    "work_new/ai_girl_bot/data/vps_twin_report_latest.json",
+    "work_new/ai_girl_bot/data/weather_latest.json",
+    "work_new/bot_02_debian/seed/latest_seed_from_vps.json",
+    "work_new/github_render_clean/brother_github_memory_sync_latest.json",
+    "work_new/github_render_clean/memory.json"
+  ],
+  "pending_display_polish": [
+    "หน้าจอ 25 แถวของบอทพี่ (โดยเฉพาะแถวที่ 23) รอกลับมาแก้ทีหลังตามคำสั่ง"
+  ]
+}

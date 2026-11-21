@@ -1,0 +1,78 @@
+{
+  "checked_at_th_24h": "2026-11-20 01:31:09",
+  "admin_agent": "brother_15001",
+  "policy": "read_only_never_delete_or_modify_old_files",
+  "targets": [
+    {
+      "rel_path": "Procfile",
+      "exists": true,
+      "bytes": 67,
+      "ok": true,
+      "detail": "procs=['web: gunicorn app:app --bind 0.0.0.0:$PORT --workers 1 --threads 4']"
+    },
+    {
+      "rel_path": "app.py",
+      "exists": true,
+      "bytes": 1610,
+      "ok": true,
+      "detail": "py_syntax_ok (52 lines)"
+    },
+    {
+      "rel_path": "main.py",
+      "exists": true,
+      "bytes": 1048,
+      "ok": true,
+      "detail": "py_syntax_ok (32 lines)"
+    },
+    {
+      "rel_path": "requirements.txt",
+      "exists": true,
+      "bytes": 30,
+      "ok": true,
+      "detail": "packages=['flask>=3.0.0', 'gunicorn>=21.2.0']"
+    },
+    {
+      "rel_path": "memory.json",
+      "exists": true,
+      "bytes": 1001500,
+      "ok": true,
+      "detail": "json_ok (keys=22)"
+    },
+    {
+      "rel_path": "templates/index.html",
+      "exists": true,
+      "bytes": 12813,
+      "ok": true,
+      "detail": "chars=12028"
+    },
+    {
+      "rel_path": "new_scripts/bot_core_render_v1.py",
+      "exists": true,
+      "bytes": 3190,
+      "ok": true,
+      "detail": "py_syntax_ok (68 lines)"
+    },
+    {
+      "rel_path": "new_scripts/render_bridge_v1.py",
+      "exists": true,
+      "bytes": 2953,
+      "ok": true,
+      "detail": "py_syntax_ok (77 lines)"
+    }
+  ],
+  "bridge_status": {
+    "ok": true,
+    "checked_at_th_24h": "2026-11-20 01:31:09",
+    "admin_agent": "brother_15001",
+    "twin_bot": "twin_25003",
+    "render_port": 10000,
+    "core_module": "bot_core_render_v1.py",
+    "core_exists": true,
+    "memory_path": "/data/data/com.termux/files/usr/tmp/render_readiness_mem_v1.json",
+    "memory_exists": true,
+    "memory_bytes": 1001500,
+    "last_unified": "2026-11-20 00:50:48",
+    "chat_history_count": 73
+  },
+  "sample_reply": "[readiness_check] ตัวเล็กรับทราบและบันทึกลงความจำกลางแล้วค่ะป๋า: ตรวจความพร้อม Render ชุดปัจจุบัน"
+}

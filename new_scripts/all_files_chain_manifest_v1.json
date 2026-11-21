@@ -1,0 +1,320 @@
+{
+  "checked_at_th_24h": "2026-11-20 01:26:34",
+  "admin_agent": "brother_15001",
+  "zone_dir": "/data/data/com.termux/files/home/work_new/github_render_clean",
+  "policy": "read_all_files_in_chain_never_delete_or_modify_old_files",
+  "total_files_read": 30,
+  "files": [
+    {
+      "rel_path": ".gitignore",
+      "abs_path": "/data/data/com.termux/files/home/work_new/github_render_clean/.gitignore",
+      "ext": "(no_ext)",
+      "bytes": 92,
+      "modified_th_24h": "2026-11-20 00:33:12",
+      "readable": true,
+      "syntax_ok": null,
+      "preview": ".env\n.memory.lock\n*.tmp\n__pycache__/\n*.pyc\n.backup_before_merge_*/\nMASTER_MEMORY_420KB.json\n"
+    },
+    {
+      "rel_path": "Procfile",
+      "abs_path": "/data/data/com.termux/files/home/work_new/github_render_clean/Procfile",
+      "ext": "(no_ext)",
+      "bytes": 67,
+      "modified_th_24h": "2026-11-20 00:33:12",
+      "readable": true,
+      "syntax_ok": null,
+      "preview": "web: gunicorn app:app --bind 0.0.0.0:$PORT --workers 1 --threads 4\n"
+    },
+    {
+      "rel_path": "app.py",
+      "abs_path": "/data/data/com.termux/files/home/work_new/github_render_clean/app.py",
+      "ext": ".py",
+      "bytes": 1610,
+      "modified_th_24h": "2026-11-20 00:33:12",
+      "readable": true,
+      "syntax_ok": true,
+      "lines": 52
+    },
+    {
+      "rel_path": "bot.sh",
+      "abs_path": "/data/data/com.termux/files/home/work_new/github_render_clean/bot.sh",
+      "ext": ".sh",
+      "bytes": 815,
+      "modified_th_24h": "2026-11-20 00:33:12",
+      "readable": true,
+      "syntax_ok": null,
+      "preview": "#!/usr/bin/env bash\nMASTER_MAIN=\"/data/data/com.termux/files/home/ai_girl_bot/main.py\"\nDEV_MAIN=\"/storage/emulated/0/Dev/ai_girl_bot/main.py\"\nTARGET_MAIN=\"$MASTER_MAIN\"\n[ ! -f \"$TARGET_MAIN\" ] && TARGET_MAIN=\"$DEV_MAIN\"\n\npython3 \"$TARGET_MAIN\"\nwhile read -p \"ป๋า > \" user_input; do\n    [ -z \"$user_input\" ] && continue\n    if [[ \"$user_input\" == \"exit\" ]] || [[ \"$user_input\" == \"ออก\" ]]; then\n      "
+    },
+    {
+      "rel_path": "bot_core.py",
+      "abs_path": "/data/data/com.termux/files/home/work_new/github_render_clean/bot_core.py",
+      "ext": ".py",
+      "bytes": 7011,
+      "modified_th_24h": "2026-11-20 00:33:12",
+      "readable": true,
+      "syntax_ok": false,
+      "lines": 153,
+      "syntax_error": "line 147: invalid syntax"
+    },
+    {
+      "rel_path": "brother_github_memory_sync_latest.json",
+      "abs_path": "/data/data/com.termux/files/home/work_new/github_render_clean/brother_github_memory_sync_latest.json",
+      "ext": ".json",
+      "bytes": 1849,
+      "modified_th_24h": "2026-11-20 00:38:43",
+      "readable": true,
+      "syntax_ok": null,
+      "json_ok": true,
+      "json_keys_count": 11
+    },
+    {
+      "rel_path": "main.py",
+      "abs_path": "/data/data/com.termux/files/home/work_new/github_render_clean/main.py",
+      "ext": ".py",
+      "bytes": 1048,
+      "modified_th_24h": "2026-11-20 00:33:12",
+      "readable": true,
+      "syntax_ok": true,
+      "lines": 32
+    },
+    {
+      "rel_path": "memory.json",
+      "abs_path": "/data/data/com.termux/files/home/work_new/github_render_clean/memory.json",
+      "ext": ".json",
+      "bytes": 1001500,
+      "modified_th_24h": "2026-11-20 00:50:48",
+      "readable": true,
+      "syntax_ok": null,
+      "json_ok": true,
+      "json_keys_count": 22
+    },
+    {
+      "rel_path": "requirements.txt",
+      "abs_path": "/data/data/com.termux/files/home/work_new/github_render_clean/requirements.txt",
+      "ext": ".txt",
+      "bytes": 30,
+      "modified_th_24h": "2026-11-20 00:33:12",
+      "readable": true,
+      "syntax_ok": null,
+      "preview": "flask>=3.0.0\ngunicorn>=21.2.0\n"
+    },
+    {
+      "rel_path": "new_scripts/auto_twin_sync_brother_v1.log",
+      "abs_path": "/data/data/com.termux/files/home/work_new/github_render_clean/new_scripts/auto_twin_sync_brother_v1.log",
+      "ext": ".log",
+      "bytes": 7020,
+      "modified_th_24h": "2026-11-20 01:26:25",
+      "readable": true,
+      "syntax_ok": null,
+      "preview": "[2026-11-20 00:55:40] started auto_twin_sync_brother_v1 -> 100.70.177.127:25003 every 20s\n[2026-11-20 00:55:41] sync_tick ok | twin_reachable=True | mem_bytes=1001500\n[2026-11-20 00:56:02] sync_tick ok | twin_reachable=True | mem_bytes=1001500\n[2026-11-20 00:56:23] sync_tick ok | twin_reachable=True | mem_bytes=1001500\n[2026-11-20 00:56:43] sync_tick ok | twin_reachable=True | mem_bytes=1001500\n[2"
+    },
+    {
+      "rel_path": "new_scripts/auto_twin_sync_brother_v1.py",
+      "abs_path": "/data/data/com.termux/files/home/work_new/github_render_clean/new_scripts/auto_twin_sync_brother_v1.py",
+      "ext": ".py",
+      "bytes": 3431,
+      "modified_th_24h": "2026-11-20 00:55:40",
+      "readable": true,
+      "syntax_ok": true,
+      "lines": 79
+    },
+    {
+      "rel_path": "new_scripts/bot_core_lines_140_153_v1.json",
+      "abs_path": "/data/data/com.termux/files/home/work_new/github_render_clean/new_scripts/bot_core_lines_140_153_v1.json",
+      "ext": ".json",
+      "bytes": 3647,
+      "modified_th_24h": "2026-11-20 01:03:54",
+      "readable": true,
+      "syntax_ok": null,
+      "json_ok": true,
+      "json_keys_count": 7
+    },
+    {
+      "rel_path": "new_scripts/bot_core_render_v1.py",
+      "abs_path": "/data/data/com.termux/files/home/work_new/github_render_clean/new_scripts/bot_core_render_v1.py",
+      "ext": ".py",
+      "bytes": 3190,
+      "modified_th_24h": "2026-11-20 01:06:22",
+      "readable": true,
+      "syntax_ok": true,
+      "lines": 68
+    },
+    {
+      "rel_path": "new_scripts/brother_dispatch_twin_test_v1.py",
+      "abs_path": "/data/data/com.termux/files/home/work_new/github_render_clean/new_scripts/brother_dispatch_twin_test_v1.py",
+      "ext": ".py",
+      "bytes": 5340,
+      "modified_th_24h": "2026-11-20 01:19:40",
+      "readable": true,
+      "syntax_ok": true,
+      "lines": 132
+    },
+    {
+      "rel_path": "new_scripts/brother_twin_dispatch_report_v1.json",
+      "abs_path": "/data/data/com.termux/files/home/work_new/github_render_clean/new_scripts/brother_twin_dispatch_report_v1.json",
+      "ext": ".json",
+      "bytes": 1109,
+      "modified_th_24h": "2026-11-20 01:19:44",
+      "readable": true,
+      "syntax_ok": null,
+      "json_ok": true,
+      "json_keys_count": 8
+    },
+    {
+      "rel_path": "new_scripts/diff_new_items_v1.py",
+      "abs_path": "/data/data/com.termux/files/home/work_new/github_render_clean/new_scripts/diff_new_items_v1.py",
+      "ext": ".py",
+      "bytes": 3139,
+      "modified_th_24h": "2026-11-20 00:46:01",
+      "readable": true,
+      "syntax_ok": true,
+      "lines": 77
+    },
+    {
+      "rel_path": "new_scripts/github_memory_sync_v1.json",
+      "abs_path": "/data/data/com.termux/files/home/work_new/github_render_clean/new_scripts/github_memory_sync_v1.json",
+      "ext": ".json",
+      "bytes": 1868,
+      "modified_th_24h": "2026-11-20 00:39:26",
+      "readable": true,
+      "syntax_ok": null,
+      "json_ok": true,
+      "json_keys_count": 9
+    },
+    {
+      "rel_path": "new_scripts/inspect_memory_kittithat_v1.py",
+      "abs_path": "/data/data/com.termux/files/home/work_new/github_render_clean/new_scripts/inspect_memory_kittithat_v1.py",
+      "ext": ".py",
+      "bytes": 2697,
+      "modified_th_24h": "2026-11-20 00:43:02",
+      "readable": true,
+      "syntax_ok": true,
+      "lines": 61
+    },
+    {
+      "rel_path": "new_scripts/inspect_render_files_v1.py",
+      "abs_path": "/data/data/com.termux/files/home/work_new/github_render_clean/new_scripts/inspect_render_files_v1.py",
+      "ext": ".py",
+      "bytes": 4555,
+      "modified_th_24h": "2026-11-20 01:00:58",
+      "readable": true,
+      "syntax_ok": true,
+      "lines": 114
+    },
+    {
+      "rel_path": "new_scripts/memory_kittithat_summary_v1.json",
+      "abs_path": "/data/data/com.termux/files/home/work_new/github_render_clean/new_scripts/memory_kittithat_summary_v1.json",
+      "ext": ".json",
+      "bytes": 11886,
+      "modified_th_24h": "2026-11-20 00:43:02",
+      "readable": true,
+      "syntax_ok": null,
+      "json_ok": true,
+      "json_keys_count": 9
+    },
+    {
+      "rel_path": "new_scripts/merge_existing_device_mem_to_gh.py",
+      "abs_path": "/data/data/com.termux/files/home/work_new/github_render_clean/new_scripts/merge_existing_device_mem_to_gh.py",
+      "ext": ".py",
+      "bytes": 4656,
+      "modified_th_24h": "2026-11-20 00:50:44",
+      "readable": true,
+      "syntax_ok": true,
+      "lines": 112
+    },
+    {
+      "rel_path": "new_scripts/new_items_report_v1.json",
+      "abs_path": "/data/data/com.termux/files/home/work_new/github_render_clean/new_scripts/new_items_report_v1.json",
+      "ext": ".json",
+      "bytes": 41044,
+      "modified_th_24h": "2026-11-20 00:46:01",
+      "readable": true,
+      "syntax_ok": null,
+      "json_ok": true,
+      "json_keys_count": 6
+    },
+    {
+      "rel_path": "new_scripts/old_files_inventory_v1.json",
+      "abs_path": "/data/data/com.termux/files/home/work_new/github_render_clean/new_scripts/old_files_inventory_v1.json",
+      "ext": ".json",
+      "bytes": 1320025,
+      "modified_th_24h": "2026-11-20 01:10:24",
+      "readable": true,
+      "syntax_ok": null,
+      "json_ok": true,
+      "json_keys_count": 8
+    },
+    {
+      "rel_path": "new_scripts/peek_bot_core_lines_v1.py",
+      "abs_path": "/data/data/com.termux/files/home/work_new/github_render_clean/new_scripts/peek_bot_core_lines_v1.py",
+      "ext": ".py",
+      "bytes": 2103,
+      "modified_th_24h": "2026-11-20 01:03:54",
+      "readable": true,
+      "syntax_ok": true,
+      "lines": 57
+    },
+    {
+      "rel_path": "new_scripts/read_all_chain_v1.py",
+      "abs_path": "/data/data/com.termux/files/home/work_new/github_render_clean/new_scripts/read_all_chain_v1.py",
+      "ext": ".py",
+      "bytes": 6286,
+      "modified_th_24h": "2026-11-20 01:26:34",
+      "readable": true,
+      "syntax_ok": true,
+      "lines": 137
+    },
+    {
+      "rel_path": "new_scripts/render_files_audit_v1.json",
+      "abs_path": "/data/data/com.termux/files/home/work_new/github_render_clean/new_scripts/render_files_audit_v1.json",
+      "ext": ".json",
+      "bytes": 1835,
+      "modified_th_24h": "2026-11-20 01:00:59",
+      "readable": true,
+      "syntax_ok": null,
+      "json_ok": true,
+      "json_keys_count": 5
+    },
+    {
+      "rel_path": "new_scripts/search_old_files_v1.py",
+      "abs_path": "/data/data/com.termux/files/home/work_new/github_render_clean/new_scripts/search_old_files_v1.py",
+      "ext": ".py",
+      "bytes": 5103,
+      "modified_th_24h": "2026-11-20 01:10:22",
+      "readable": true,
+      "syntax_ok": true,
+      "lines": 125
+    },
+    {
+      "rel_path": "new_scripts/sync_github_memory_new.py",
+      "abs_path": "/data/data/com.termux/files/home/work_new/github_render_clean/new_scripts/sync_github_memory_new.py",
+      "ext": ".py",
+      "bytes": 3397,
+      "modified_th_24h": "2026-11-20 00:39:26",
+      "readable": true,
+      "syntax_ok": true,
+      "lines": 79
+    },
+    {
+      "rel_path": "new_scripts/twin_auto_bus_v1.json",
+      "abs_path": "/data/data/com.termux/files/home/work_new/github_render_clean/new_scripts/twin_auto_bus_v1.json",
+      "ext": ".json",
+      "bytes": 634,
+      "modified_th_24h": "2026-11-20 01:26:25",
+      "readable": true,
+      "syntax_ok": null,
+      "json_ok": true,
+      "json_keys_count": 7
+    },
+    {
+      "rel_path": "templates/index.html",
+      "abs_path": "/data/data/com.termux/files/home/work_new/github_render_clean/templates/index.html",
+      "ext": ".html",
+      "bytes": 12813,
+      "modified_th_24h": "2026-11-20 00:33:12",
+      "readable": true,
+      "syntax_ok": null,
+      "preview": "<!DOCTYPE html>\n<html lang=\"th\">\n<head>\n    <meta charset=\"UTF-8\">\n    <meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0\">\n    <title>บอทตัวน้อย (ตัวเล็ก) - ระบบควบคุมอัจฉริยะ</title>\n    <style>\n        body {\n            background-color: #0f172a;\n            color: #f8fafc;\n            font-family: -apple-system, BlinkMacSystemFont, \"Segoe UI\", Roboto, sans-serif;\n           "
+    }
+  ]
+}

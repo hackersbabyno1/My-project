@@ -1,0 +1,84 @@
+{
+  "checked_at_th_24h": "2026-11-20 01:00:59",
+  "admin_agent": "brother_15001",
+  "repo_dir": "/data/data/com.termux/files/home/work_new/github_render_clean",
+  "policy": "read_only_audit_never_delete_or_modify_old_files",
+  "files": {
+    "Procfile": {
+      "exists": true,
+      "bytes": 67,
+      "lines": [
+        "web: gunicorn app:app --bind 0.0.0.0:$PORT --workers 1 --threads 4"
+      ],
+      "raw": "web: gunicorn app:app --bind 0.0.0.0:$PORT --workers 1 --threads 4"
+    },
+    "app.py": {
+      "exists": true,
+      "bytes": 1610,
+      "lines": 52,
+      "syntax_ok": true,
+      "syntax_error": null,
+      "imports": [
+        "from flask",
+        "os",
+        "socket",
+        "from bot_core"
+      ],
+      "functions": [
+        "healthz",
+        "api_status",
+        "api_memory",
+        "index",
+        "chat",
+        "find_free_port"
+      ],
+      "classes": [],
+      "flask_routes": [
+        "/healthz",
+        "/api/status",
+        "/api/memory",
+        "/",
+        "/api/chat"
+      ],
+      "env_vars": [
+        "PORT"
+      ],
+      "port_mentions": [
+        "PORT"
+      ]
+    },
+    "bot_core.py": {
+      "exists": true,
+      "bytes": 7011,
+      "lines": 153,
+      "syntax_ok": false,
+      "syntax_error": "line 147: invalid syntax",
+      "imports": [],
+      "functions": [],
+      "classes": [],
+      "flask_routes": [],
+      "env_vars": [],
+      "port_mentions": []
+    },
+    "main.py": {
+      "exists": true,
+      "bytes": 1048,
+      "lines": 32,
+      "syntax_ok": true,
+      "syntax_error": null,
+      "imports": [
+        "os",
+        "sys",
+        "from bot_core"
+      ],
+      "functions": [
+        "detect_env",
+        "run_status_display"
+      ],
+      "classes": [],
+      "flask_routes": [],
+      "env_vars": [],
+      "port_mentions": []
+    }
+  }
+}

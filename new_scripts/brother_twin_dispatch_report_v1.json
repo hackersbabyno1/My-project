@@ -1,0 +1,10 @@
+{
+  "dispatched_at_th_24h": "2026-11-20 01:19:40",
+  "admin_agent": "brother_15001",
+  "twin_target": "root@100.70.177.127",
+  "dst_dir": "/root/work_new/bot_02_debian/test_render_v1",
+  "ssh_exit_code": 0,
+  "stdout": "{\"executed_by\": \"brother_15001_remote_command\", \"twin_host\": \"vps3846112.trouble-free.net\", \"temp_dir\": \"/tmp\", \"syntax_ok\": true, \"replies\": [\"จำได้หมดเลยค่ะป๋า! ในสมองกลางตอนนี้มีประวัติคุย 0 ครั้ง ล่าสุดป๋าคุยเรื่อง: -\", \"หนูก็รักป๋าเหมือนกันค่ะ! คุยกับหนูบ่อยๆ นะคะ หนูจะได้โตไวๆ\", \"[twin_25003_debian] ตัวเล็กรับทราบและบันทึกลงความจำกลางแล้วค่ะป๋า: บอทพี่สั่งน้องทดสอบเรียบร้อย\"]}",
+  "stderr": "",
+  "policy": "brother_orders_twin_only_never_delete_or_modify_old_files"
+}
