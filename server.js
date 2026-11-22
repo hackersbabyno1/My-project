@@ -77,7 +77,7 @@ function loadKeysFromDisk() {
     if (Array.isArray(raw.keys) && raw.keys.length > 0) {
       KEYS = raw.keys.map(k => ({
         ...k,
-        group: getKeyGroup(k),
+        group: k.group || getKeyGroup(k),
         uuid: k.uuid || crypto.randomUUID(),
         active: k.active !== false,
         expiresAt: Number(k.expiresAt || 0)
@@ -175,6 +175,108 @@ const server = http.createServer((req, res) => {
     return res.end();
   }
 
+  /* DIRECT_DEL_HOOK */
+  if (pathname === '/api/admin-delete-key' && req.method === 'POST') {
+    let body = '';
+    req.on('data', c => body += c);
+    req.on('end', () => {
+      try {
+        const parsed = JSON.parse(body || '{}');
+        const delId = Number(parsed.id);
+        if (Number.isNaN(delId) || delId <= 4) {
+          res.writeHead(400, { 'Content-Type': 'application/json; charset=utf-8' });
+          return res.end(JSON.stringify({ ok: false, error: 'protected_key' }));
+        }
+        const pos = KEYS.findIndex(k => Number(k.id) === delId);
+        if (pos === -1) {
+          res.writeHead(404, { 'Content-Type': 'application/json; charset=utf-8' });
+          return res.end(JSON.stringify({ ok: false, error: 'not_found_' + delId }));
+        }
+        KEYS.splice(pos, 1); if (typeof saveKeysToDisk === 'function') saveKeysToDisk();
+        const kp = path.join(__dirname, 'keys_store.json');
+        let raw = null;
+        try { raw = JSON.parse(fs.readFileSync(kp, 'utf8')); } catch (e) {}
+        if (raw && typeof raw === 'object' && !Array.isArray(raw) && Array.isArray(raw.keys)) {
+          raw.keys = KEYS;
+          fs.writeFileSync(kp, JSON.stringify(raw, null, 2));
+        } else {
+          fs.writeFileSync(kp, JSON.stringify(KEYS, null, 2));
+        }
+        res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8' });
+        return res.end(JSON.stringify({ ok: true, deletedId: delId, remaining: KEYS.length }));
+      } catch (e) {
+        res.writeHead(500, { 'Content-Type': 'application/json; charset=utf-8' });
+        return res.end(JSON.stringify({ ok: false, error: String(e) }));
+      }
+    });
+    return;
+  }
+  if (pathname === '/api/admin-list-keys') {
+    const items = KEYS.filter(k => Number(k.id) !== 1).map(k => ({
+      id: k.id,
+      name: k.name,
+      group: k.group || (typeof getKeyGroup === 'function' ? getKeyGroup(k) : 'general')
+    }));
+    res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8' });
+    return res.end(JSON.stringify({ ok: true, keys: items }));
+  }
+  if (pathname === '/api/admin-add-key' && req.method === 'POST') {
+    let body = '';
+    req.on('data', c => body += c);
+    req.on('end', () => {
+      try {
+        const parsed = JSON.parse(body || '{}');
+        const grp = parsed.group === 'test' ? 'test' : 'general';
+        const label = grp === 'test' ? (`Test-User-${Date.now().toString().slice(-4)}`) : (`General-User-${Date.now().toString().slice(-4)}`);
+        const created = createGeneralKey(label, Number(parsed.days) || 30);
+        created.group = grp;
+        if (typeof saveKeysToDisk === 'function') saveKeysToDisk();
+        res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8' });
+        res.end(JSON.stringify({ ok: true, key: created }));
+      } catch (e) {
+        res.writeHead(400, { 'Content-Type': 'application/json; charset=utf-8' });
+        res.end(JSON.stringify({ ok: false, error: e.message }));
+      }
+    });
+    return;
+  }
+  if (pathname === '/api/admin-delete-key' && req.method === 'POST') {
+    let body = '';
+    req.on('data', c => body += c);
+    req.on('end', () => {
+      try {
+        const parsed = JSON.parse(body || '{}');
+        const delId = Number(parsed.id);
+        if (Number.isNaN(delId) || delId <= 4) {
+          res.writeHead(400, { 'Content-Type': 'application/json; charset=utf-8' });
+          return res.end(JSON.stringify({ ok: false, error: 'protected_key' }));
+        }
+        const pos = KEYS.findIndex(k => Number(k.id) === delId);
+        if (pos !== -1) {
+          KEYS.splice(pos, 1);
+          if (typeof saveKeysStore === 'function') {
+            saveKeysStore();
+          } else {
+            const kp = path.join(__dirname, 'keys_store.json');
+            let raw = null;
+            try { raw = JSON.parse(fs.readFileSync(kp, 'utf8')); } catch (e) {}
+            if (raw && typeof raw === 'object' && !Array.isArray(raw) && Array.isArray(raw.keys)) {
+              raw.keys = KEYS;
+              fs.writeFileSync(kp, JSON.stringify(raw, null, 2));
+            } else {
+              fs.writeFileSync(kp, JSON.stringify(KEYS, null, 2));
+            }
+          }
+        }
+        res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8' });
+        return res.end(JSON.stringify({ ok: true, deletedId: delId }));
+      } catch (e) {
+        res.writeHead(500, { 'Content-Type': 'application/json; charset=utf-8' });
+        return res.end(JSON.stringify({ ok: false, error: String(e) }));
+      }
+    });
+    return;
+  }
   if (pathname === '/update-time') {
     if (!isAdmin) {
       res.writeHead(401, { 'WWW-Authenticate': 'Basic realm="Admin Area"' });
@@ -272,8 +374,150 @@ function toggleKeyGroup(grp) {
 })();
 </script>
 
+
+<script>
+async function addGroupKey(grp) {
+  try {
+    const r = await fetch('/api/admin-add-key', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ group: grp })
+    });
+    const j = await r.json();
+    if (j.ok) location.reload();
+  } catch (e) { console.error(e); }
+}
+async function deleteKeyRow(id) {
+  try {
+    const r = await fetch('/api/admin-delete-key', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ id: Number(id) })
+    });
+    const j = await r.json();
+    if (j.ok) location.reload();
+  } catch (e) { console.error(e); }
+}
+</script>
+
+<script>
+(function() {
+  async function apiAddKey(grp) {
+    try {
+      const r = await fetch('/api/admin-add-key', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ group: grp })
+      });
+      const j = await r.json();
+      if (j && j.ok) location.reload();
+    } catch (e) { console.error(e); }
+  }
+  async function apiDelKey(id) {
+    try {
+      const r = await fetch('/api/admin-delete-key', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id: Number(id) })
+      });
+      const j = await r.json();
+      if (j && j.ok) location.reload();
+    } catch (e) { console.error(e); }
+  }
+  function injectGroupCrudButtons() {
+    document.querySelectorAll('button, tr, td, div').forEach(el => {
+      const txt = (el.textContent || '').trim();
+      if ((txt.startsWith('กลุ่มเทสต์ (') || txt.startsWith('กลุ่มผู้ใช้งานทั่วไป (')) && el.children.length <= 3 && !el.querySelector('.btn-add-grp-key')) {
+        const grp = txt.startsWith('กลุ่มเทสต์') ? 'test' : 'general';
+        const btn = document.createElement('span');
+        btn.className = 'btn-add-grp-key';
+        btn.textContent = '+ เพิ่มคีย์';
+        btn.style.cssText = 'margin-left:8px;padding:3px 9px;border-radius:5px;background:#1976d2;color:#fff;font-size:11px;font-weight:bold;cursor:pointer;display:inline-block;';
+        btn.onclick = function(ev) { ev.stopPropagation(); ev.preventDefault(); apiAddKey(grp); };
+        const firstSpan = el.querySelector('span');
+        if (firstSpan) firstSpan.appendChild(btn);
+      }
+    });
+    document.querySelectorAll('tr').forEach(tr => {
+      const idCell = tr.querySelector('td');
+      if (!idCell) return;
+      const kid = parseInt((idCell.textContent || '').trim(), 10);
+      if (!kid || kid === 1) return;
+      const copyBtn = tr.querySelector('button[onclick*="toggleAdminCopyStep"]');
+      if (copyBtn && copyBtn.parentElement && !copyBtn.parentElement.querySelector('.btn-del-key-row')) {
+        const dbtn = document.createElement('button');
+        dbtn.type = 'button';
+        dbtn.className = 'btn-del-key-row';
+        dbtn.textContent = 'ลบ';
+        dbtn.style.cssText = 'margin-left:4px;background:#c62828;color:#fff;border:none;padding:6px 8px;border-radius:4px;cursor:pointer;font-weight:bold;white-space:nowrap;font-size:11px;';
+        dbtn.onclick = function(ev) { ev.stopPropagation(); apiDelKey(kid); };
+        copyBtn.parentElement.appendChild(dbtn);
+      }
+    });
+  }
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', injectGroupCrudButtons);
+  } else {
+    injectGroupCrudButtons();
+  }
+  setTimeout(injectGroupCrudButtons, 250);
+  setTimeout(injectGroupCrudButtons, 800);
+})();
+</script>
+
+<script>
+window.openDelGroupList = async function(targetGrp) {
+  var dg = document.getElementById("keyStepDelGroupView");
+  var dv = document.getElementById("keyStepDelView");
+  var title = document.getElementById("keyDelGroupTitle");
+  var box = document.getElementById("keyDelListBox");
+  if (dg) dg.style.display = "none";
+  if (dv) dv.style.display = "block";
+  if (title) title.textContent = targetGrp === "test" ? "คีย์ในกลุ่มเทสต์" : "คีย์ในกลุ่มผู้ใช้งานทั่วไป";
+  if (!box) return;
+  box.textContent = "กำลังโหลด...";
+  try {
+    var r = await fetch("/api/admin-list-keys");
+    var j = await r.json();
+    var list = (j.keys || []).filter(function(k) { return (k.group || "general") === targetGrp; });
+    if (list.length === 0) {
+      box.textContent = "ไม่มีคีย์ในกลุ่มนี้";
+      return;
+    }
+    box.innerHTML = list.map(function(k) {
+      return "<div style=\"display:flex;justify-content:space-between;align-items:center;padding:6px 4px;border-bottom:1px solid #333;gap:6px;\">" +
+        "<span style=\"color:#fff;font-size:11px;word-break:break-all;\">#" + k.id + " " + k.name + "</span>" +
+        "<button type=\"button\" onclick=\"window.doDeleteKeyNow(" + k.id + ", this, event)\" style=\"background:#c62828;color:#fff;border:none;padding:4px 10px;border-radius:4px;font-size:11px;font-weight:bold;cursor:pointer;white-space:nowrap;\">ลบ</button>" +
+      "</div>";
+    }).join("");
+  } catch (e) {
+    box.textContent = "โหลดไม่สำเร็จ: " + e;
+  }
+};
+window.doDeleteKeyNow = async function(kid, btn, ev) {
+  if (ev && ev.stopPropagation) ev.stopPropagation();
+  if (btn) { btn.textContent = "กำลังลบ..."; btn.disabled = true; }
+  try {
+    var r = await fetch("/api/admin-delete-key", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ id: Number(kid) })
+    });
+    var j = await r.json();
+    if (j && j.ok) {
+      location.reload();
+    } else {
+      alert("ลบไม่สำเร็จ: " + (j && j.error ? j.error : "unknown"));
+      if (btn) { btn.textContent = "ลบ"; btn.disabled = false; }
+    }
+  } catch (e) {
+    alert("Error: " + e);
+    if (btn) { btn.textContent = "ลบ"; btn.disabled = false; }
+  }
+};
+</script>
 </body>
-      </html>
+      \n<script>\ndocument.addEventListener('click',function(e){\nvar b=e.target&&e.target.closest?e.target.closest('button'):null;\nif(!b)return;\nvar t=(b.textContent||'').trim();\nif(t.indexOf('ลบคีย์กลุ่มเทสต์')!==-1||t.indexOf('ลบคีย์กลุ่มผู้ใช้งานทั่วไป')!==-1){\ne.preventDefault();e.stopPropagation();\nvar g=t.indexOf('เทสต์')!==-1?'test':'general';\nvar dg=document.getElementById('keyStepDelGroupView'),dv=document.getElementById('keyStepDelView'),ti=document.getElementById('keyDelGroupTitle'),bx=document.getElementById('keyDelListBox');\nif(dg)dg.style.display='none';if(dv)dv.style.display='block';\nif(ti)ti.textContent=g==='test'?'คีย์ในกลุ่มเทสต์':'คีย์ในกลุ่มผู้ใช้งานทั่วไป';\nif(bx){bx.innerHTML='กำลังโหลด...';fetch('/api/admin-list-keys').then(function(r){return r.json();}).then(function(j){\nvar list=(j.keys||[]).filter(function(k){return(k.group||'general')===g&&Number(k.id)>4;});\nif(!list.length){bx.innerHTML='<div style=\"padding:6px;color:#aaa;\">ไม่มีคีย์ในกลุ่มนี้</div>';return;}\nbx.innerHTML=list.map(function(k){return'<div style=\"display:flex;justify-content:space-between;align-items:center;padding:6px 4px;border-bottom:1px solid #333;gap:6px;\"><span style=\"color:#fff;font-size:11px;word-break:break-all;\">#'+k.id+' '+(k.name||'')+'</span><button type=\"button\" data-del-key-id=\"'+k.id+'\" style=\"background:#d32f2f;color:#fff;border:none;padding:4px 10px;border-radius:4px;font-size:11px;font-weight:bold;cursor:pointer;\">ลบ</button></div>';}).join('');\n}).catch(function(err){bx.innerHTML='<div style=\"padding:6px;color:#ff8a80;\">โหลดไม่สำเร็จ: '+err+'</div>';});}\nreturn;}\nvar did=b.getAttribute('data-del-key-id');\nif(did){\ne.preventDefault();e.stopPropagation();b.disabled=true;b.textContent='กำลังลบ...';\nfetch('/api/admin-delete-key',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({id:Number(did)})}).then(function(r){return r.json();}).then(function(j){\nif(j&&j.ok){location.reload();}else{alert('ลบไม่สำเร็จ: '+(j&&j.error?j.error:'unknown'));b.disabled=false;b.textContent='ลบ';}\n}).catch(function(err){alert('เชื่อมต่อไม่ได้: '+err);b.disabled=false;b.textContent='ลบ';});\n}\n},true);\n</script></html>
     `);
   }
 
@@ -520,13 +764,14 @@ function toggleKeyGroup(grp) {
 </script>
 <div style="position:fixed; top:12px; right:12px; z-index:9999;"><a href="/10admin" style="background:#059669; color:#fff; padding:8px 12px; text-decoration:none; border-radius:5px; font-size:14px; font-weight:bold;">⚙️ หลังบ้าน</a></div>
 </body>
-      </html>
+      \n<script>\ndocument.addEventListener('click',function(e){\nvar b=e.target&&e.target.closest?e.target.closest('button'):null;\nif(!b)return;\nvar t=(b.textContent||'').trim();\nif(t.indexOf('ลบคีย์กลุ่มเทสต์')!==-1||t.indexOf('ลบคีย์กลุ่มผู้ใช้งานทั่วไป')!==-1){\ne.preventDefault();e.stopPropagation();\nvar g=t.indexOf('เทสต์')!==-1?'test':'general';\nvar dg=document.getElementById('keyStepDelGroupView'),dv=document.getElementById('keyStepDelView'),ti=document.getElementById('keyDelGroupTitle'),bx=document.getElementById('keyDelListBox');\nif(dg)dg.style.display='none';if(dv)dv.style.display='block';\nif(ti)ti.textContent=g==='test'?'คีย์ในกลุ่มเทสต์':'คีย์ในกลุ่มผู้ใช้งานทั่วไป';\nif(bx){bx.innerHTML='กำลังโหลด...';fetch('/api/admin-list-keys').then(function(r){return r.json();}).then(function(j){\nvar list=(j.keys||[]).filter(function(k){return(k.group||'general')===g&&Number(k.id)>4;});\nif(!list.length){bx.innerHTML='<div style=\"padding:6px;color:#aaa;\">ไม่มีคีย์ในกลุ่มนี้</div>';return;}\nbx.innerHTML=list.map(function(k){return'<div style=\"display:flex;justify-content:space-between;align-items:center;padding:6px 4px;border-bottom:1px solid #333;gap:6px;\"><span style=\"color:#fff;font-size:11px;word-break:break-all;\">#'+k.id+' '+(k.name||'')+'</span><button type=\"button\" data-del-key-id=\"'+k.id+'\" style=\"background:#d32f2f;color:#fff;border:none;padding:4px 10px;border-radius:4px;font-size:11px;font-weight:bold;cursor:pointer;\">ลบ</button></div>';}).join('');\n}).catch(function(err){bx.innerHTML='<div style=\"padding:6px;color:#ff8a80;\">โหลดไม่สำเร็จ: '+err+'</div>';});}\nreturn;}\nvar did=b.getAttribute('data-del-key-id');\nif(did){\ne.preventDefault();e.stopPropagation();b.disabled=true;b.textContent='กำลังลบ...';\nfetch('/api/admin-delete-key',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({id:Number(did)})}).then(function(r){return r.json();}).then(function(j){\nif(j&&j.ok){location.reload();}else{alert('ลบไม่สำเร็จ: '+(j&&j.error?j.error:'unknown'));b.disabled=false;b.textContent='ลบ';}\n}).catch(function(err){alert('เชื่อมต่อไม่ได้: '+err);b.disabled=false;b.textContent='ลบ';});\n}\n},true);\n</script></html>
     `);
     }
 
 
     if (isAdmin) {
       const __gCnt = { family:0, test:0, general:0 }; KEYS.forEach(x => { const g = getKeyGroup(x); if (__gCnt[g] !== undefined) __gCnt[g]++; }); const __gSeen = {};
+let __adminShown = false;
 const keyRows = KEYS.map(k => {
       const famNames = { 2: 'ครอบครัว 1', 3: 'ครอบครัว 2', 4: 'ครอบครัว 3' };
       const displayName = famNames[Number(k.id)] || k.name;
@@ -574,7 +819,7 @@ const keyRows = KEYS.map(k => {
         }
 
         return `
-          ${(() => { const __g = getKeyGroup(k); if (!['family','test','general'].includes(__g) || __gSeen[__g]) return ''; __gSeen[__g] = true; const __t = __g==='family'?'กลุ่มครอบครัว':(__g==='test'?'กลุ่มเทสต์':'กลุ่มผู้ใช้งานทั่วไป'); return '<tr><td colspan="5" style="padding:6px 8px;"><button type="button" id="grpBtn_' + __g + '" data-open="0" onclick="toggleKeyGroup(\'' + __g + '\')" style="width:100%;display:flex;justify-content:space-between;align-items:center;padding:7px 10px;border-radius:6px;background:#1b1b1b;color:#fff;border:1px solid #555;font-size:12px;font-weight:bold;"><span>' + __t + ' (' + __gCnt[__g] + ')</span><span id="grpLbl_' + __g + '">▶ กดเพื่อแสดง</span></button></td></tr>'; })()}${(() => { const __g = getKeyGroup(k); if (!['family','test','general'].includes(__g) || __gSeen[__g]) return ''; __gSeen[__g] = true; const __t = __g==='family'?'กลุ่มครอบครัว':(__g==='test'?'กลุ่มเทสต์':'กลุ่มผู้ใช้งานทั่วไป'); return '<tr><td colspan="5" style="padding:6px 8px;"><button type="button" id="grpBtn_' + __g + '" data-open="0" onclick="toggleKeyGroup(\'' + __g + '\')" style="width:100%;display:flex;justify-content:space-between;align-items:center;padding:7px 10px;border-radius:6px;background:#1b1b1b;color:#fff;border:1px solid #555;font-size:12px;font-weight:bold;"><span>' + __t + ' (' + __gCnt[__g] + ')</span><span id="grpLbl_' + __g + '">▶ กดเพื่อแสดง</span></button></td></tr>'; })()}<tr data-key-group="${getKeyGroup(k)}" style="border-bottom: 1px solid #333;">
+          ${(() => { const __g = getKeyGroup(k); if (!['family','test','general'].includes(__g) || __gSeen[__g]) return ''; __gSeen[__g] = true; const __t = __g==='family'?'กลุ่มครอบครัว':(__g==='test'?'กลุ่มเทสต์':'กลุ่มผู้ใช้งานทั่วไป'); return '<tr><td colspan="5" style="padding:6px 8px;"><button type="button" id="grpBtn_' + __g + '" data-open="0" onclick="toggleKeyGroup(\'' + __g + '\')" style="width:100%;display:flex;justify-content:space-between;align-items:center;padding:7px 10px;border-radius:6px;background:#1b1b1b;color:#fff;border:1px solid #555;font-size:12px;font-weight:bold;"><span>' + __t + ' (' + __gCnt[__g] + ')</span><span id="grpLbl_' + __g + '">▶ กดเพื่อแสดง</span></button></td></tr>'; })()}<tr data-key-group="${getKeyGroup(k)}" style="border-bottom: 1px solid #333;">
             <td style="padding:4px 1px; font-size:11px; word-break:break-word;">${k.id}</td>
             <td style="padding:4px 1px; font-size:11px; font-weight:bold; word-break:break-word;"><span id="user-status-${k.id}" data-key-id="${k.id}" style="display:inline-block; padding:2px 6px; border-radius:4px; font-weight:bold; background:rgba(255,193,7,0.16); color:#ffc107; border:1px solid rgba(255,193,7,0.45);">⏳ ${displayName}</span>${getGroupBadgeHtml(k)}</td>
             <td style="padding:4px 1px; font-size:11px; word-break:break-word;">${timeStatus}</td>
@@ -753,6 +998,72 @@ const keyRows = KEYS.map(k => {
             <h2>⚡ Full Control: ระบบจัดการคีย์</h2>
             <div style="display:flex; gap:8px;">
               <a href="/?view=home" style="background:#2563eb; color:#fff; padding:8px 12px; text-decoration:none; border-radius:5px; font-size:14px; font-weight:bold;">🏠 หน้าบ้าน</a><a href="/logout" style="background:#dc3545; color:#fff; padding:8px 15px; text-decoration:none; border-radius:5px; font-size:14px;">🔴 ออกจากระบบ</a>
+<div style="position:relative;display:inline-block;margin-left:6px;z-index:999;">
+  <button type="button" id="btnKeyStepMain" onclick="toggleKeyStepMenu()" style="background:#1976d2;color:#fff;border:none;padding:8px 12px;border-radius:6px;font-weight:bold;cursor:pointer;">🔑 จัดการคีย์ ▾</button>
+  <div id="keyStepDropdown" style="display:none;position:absolute;right:0;top:38px;background:#1e1e1e;border:1px solid #555;border-radius:8px;box-shadow:0 8px 20px rgba(0,0,0,0.85);min-width:220px;padding:6px;z-index:9999;">
+    <div id="keyStepMainView">
+      <button type="button" onclick="openKeySubStep('add')" style="display:block;width:100%;text-align:left;background:none;border:none;border-bottom:1px solid #333;padding:10px;color:#4fc3f7;font-weight:bold;font-size:13px;cursor:pointer;">➕ 1. เพิ่มคีย์</button>
+      <button type="button" onclick="openKeySubStep('del')" style="display:block;width:100%;text-align:left;background:none;border:none;padding:10px;color:#ff8a80;font-weight:bold;font-size:13px;cursor:pointer;">🗑️ 2. ลบคีย์</button>
+    </div>
+    <div id="keyStepAddView" style="display:none;">
+      <div style="display:flex;justify-content:space-between;align-items:center;padding:4px 6px 8px;border-bottom:1px solid #333;color:#aaa;font-size:11px;">
+        <span>เลือกกลุ่มที่จะเพิ่มคีย์</span>
+        <span onclick="backKeyMainStep()" style="color:#fff;cursor:pointer;">◀ กลับ</span>
+      </div>
+      <button type="button" onclick="adminCreateGroupKey('test')" style="display:block;width:100%;text-align:left;background:none;border:none;border-bottom:1px solid #333;padding:10px;color:#fff;font-weight:bold;font-size:12px;cursor:pointer;">🧪 เพิ่มเข้ากลุ่มเทสต์</button>
+      <button type="button" onclick="adminCreateGroupKey('general')" style="display:block;width:100%;text-align:left;background:none;border:none;padding:10px;color:#fff;font-weight:bold;font-size:12px;cursor:pointer;">👤 เพิ่มเข้ากลุ่มผู้ใช้งานทั่วไป</button>
+    </div>
+    <div id="keyStepDelGroupView" style="display:none;"><div style="display:flex;justify-content:space-between;align-items:center;padding:4px 6px 8px;border-bottom:1px solid #333;color:#aaa;font-size:11px;"><span>เลือกกลุ่มที่จะลบคีย์</span><span onclick="backKeyMainStep()" style="color:#fff;cursor:pointer;">◀ กลับ</span></div><button type="button" onclick="event.stopPropagation();window.openDelGroupList('test')" style="display:block;width:100%;text-align:left;background:none;border:none;border-bottom:1px solid #333;padding:10px;color:#ff8a80;font-weight:bold;font-size:12px;cursor:pointer;">🧪 ลบคีย์กลุ่มเทสต์</button><button type="button" onclick="event.stopPropagation();window.openDelGroupList('general')" style="display:block;width:100%;text-align:left;background:none;border:none;padding:10px;color:#ff8a80;font-weight:bold;font-size:12px;cursor:pointer;">👤 ลบคีย์กลุ่มผู้ใช้งานทั่วไป</button></div><div id="keyStepDelView" style="display:none;max-height:260px;overflow-y:auto;"><div style="display:flex;justify-content:space-between;align-items:center;padding:4px 6px 8px;border-bottom:1px solid #333;color:#aaa;font-size:11px;"><span id="keyDelGroupTitle">รายการคีย์</span><span onclick="openKeySubStep('del')" style="color:#fff;cursor:pointer;">◀ กลับ</span></div><div id="keyDelListBox" style="padding:4px;font-size:12px;color:#ccc;">กำลังโหลด...</div></div>
+  </div>
+</div>
+<script>
+function toggleKeyStepMenu() {
+  const m = document.getElementById('keyStepDropdown');
+  if (!m) return;
+  const show = m.style.display !== 'block';
+  m.style.display = show ? 'block' : 'none';
+  if (show) backKeyMainStep();
+}
+function backKeyMainStep() { document.getElementById('keyStepMainView').style.display = 'block'; document.getElementById('keyStepAddView').style.display = 'none'; document.getElementById('keyStepDelGroupView').style.display = 'none'; document.getElementById('keyStepDelView').style.display = 'none'; }
+function openKeySubStep(mode) { document.getElementById('keyStepMainView').style.display = 'none'; document.getElementById('keyStepAddView').style.display = 'none'; document.getElementById('keyStepDelGroupView').style.display = 'none'; document.getElementById('keyStepDelView').style.display = 'none'; if (mode === 'add') { document.getElementById('keyStepAddView').style.display = 'block'; } else { document.getElementById('keyStepDelGroupView').style.display = 'block'; } }
+async function adminCreateGroupKey(grp) {
+  try {
+    const r = await fetch('/api/admin-add-key', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ group: grp })
+    });
+    const j = await r.json();
+    if (j && j.ok) location.reload();
+  } catch (e) { console.error(e); }
+}
+async function adminRemoveGroupKey(id, ev) {
+  if (ev && ev.stopPropagation) ev.stopPropagation();
+  try {
+    const r = await fetch('/api/admin-delete-key', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ id: Number(id) })
+    });
+    const j = await r.json();
+    if (j && j.ok) {
+      location.reload();
+    } else {
+      alert('ลบไม่สำเร็จ: ' + (j && j.error ? j.error : 'unknown'));
+    }
+  } catch (e) {
+    alert('เชื่อมต่อเซิร์ฟเวอร์ไม่ได้: ' + e);
+  }
+}
+document.addEventListener('click', function(ev) {
+  const m = document.getElementById('keyStepDropdown');
+  const b = document.getElementById('btnKeyStepMain');
+  if (m && b && !m.contains(ev.target) && !b.contains(ev.target)) {
+    m.style.display = 'none';
+  }
+});
+</script>
+
             </div>
           </div>
           <p>ยินดีต้อนรับป๋า (Admin) | เซิร์ฟเวอร์: <b>${host}</b></p>
@@ -847,7 +1158,7 @@ const keyRows = KEYS.map(k => {
 </script>
 
 </body>
-        </html>
+        \n<script>\ndocument.addEventListener('click',function(e){\nvar b=e.target&&e.target.closest?e.target.closest('button'):null;\nif(!b)return;\nvar t=(b.textContent||'').trim();\nif(t.indexOf('ลบคีย์กลุ่มเทสต์')!==-1||t.indexOf('ลบคีย์กลุ่มผู้ใช้งานทั่วไป')!==-1){\ne.preventDefault();e.stopPropagation();\nvar g=t.indexOf('เทสต์')!==-1?'test':'general';\nvar dg=document.getElementById('keyStepDelGroupView'),dv=document.getElementById('keyStepDelView'),ti=document.getElementById('keyDelGroupTitle'),bx=document.getElementById('keyDelListBox');\nif(dg)dg.style.display='none';if(dv)dv.style.display='block';\nif(ti)ti.textContent=g==='test'?'คีย์ในกลุ่มเทสต์':'คีย์ในกลุ่มผู้ใช้งานทั่วไป';\nif(bx){bx.innerHTML='กำลังโหลด...';fetch('/api/admin-list-keys').then(function(r){return r.json();}).then(function(j){\nvar list=(j.keys||[]).filter(function(k){return(k.group||'general')===g&&Number(k.id)>4;});\nif(!list.length){bx.innerHTML='<div style=\"padding:6px;color:#aaa;\">ไม่มีคีย์ในกลุ่มนี้</div>';return;}\nbx.innerHTML=list.map(function(k){return'<div style=\"display:flex;justify-content:space-between;align-items:center;padding:6px 4px;border-bottom:1px solid #333;gap:6px;\"><span style=\"color:#fff;font-size:11px;word-break:break-all;\">#'+k.id+' '+(k.name||'')+'</span><button type=\"button\" data-del-key-id=\"'+k.id+'\" style=\"background:#d32f2f;color:#fff;border:none;padding:4px 10px;border-radius:4px;font-size:11px;font-weight:bold;cursor:pointer;\">ลบ</button></div>';}).join('');\n}).catch(function(err){bx.innerHTML='<div style=\"padding:6px;color:#ff8a80;\">โหลดไม่สำเร็จ: '+err+'</div>';});}\nreturn;}\nvar did=b.getAttribute('data-del-key-id');\nif(did){\ne.preventDefault();e.stopPropagation();b.disabled=true;b.textContent='กำลังลบ...';\nfetch('/api/admin-delete-key',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({id:Number(did)})}).then(function(r){return r.json();}).then(function(j){\nif(j&&j.ok){location.reload();}else{alert('ลบไม่สำเร็จ: '+(j&&j.error?j.error:'unknown'));b.disabled=false;b.textContent='ลบ';}\n}).catch(function(err){alert('เชื่อมต่อไม่ได้: '+err);b.disabled=false;b.textContent='ลบ';});\n}\n},true);\n</script></html>
       `);
     }
 
@@ -1089,12 +1400,106 @@ function toggleKeyGroup(grp) {
   setTimeout(collapseOnStart, 600);
 })();
 </script>
+
+<script>
+(function() {
+  async function apiAddKey(grp) {
+    try {
+      const r = await fetch('/api/admin-add-key', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ group: grp })
+      });
+      const j = await r.json();
+      if (j && j.ok) location.reload();
+    } catch (e) { console.error(e); }
+  }
+  async function apiDelKey(id) {
+    try {
+      const r = await fetch('/api/admin-delete-key', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id: Number(id) })
+      });
+      const j = await r.json();
+      if (j && j.ok) location.reload();
+    } catch (e) { console.error(e); }
+  }
+  function mountAdminCrud() {
+    ['test', 'general'].forEach(function(grp) {
+      const btn = document.getElementById('grpBtn_' + grp);
+      if (!btn || btn.parentElement.querySelector('.btn-add-grp-' + grp)) return;
+      const wrap = document.createElement('div');
+      wrap.style.cssText = 'display:flex;gap:6px;align-items:center;width:100%;';
+      btn.style.flex = '1';
+      btn.style.width = 'auto';
+      btn.parentNode.insertBefore(wrap, btn);
+      wrap.appendChild(btn);
+
+      const addBtn = document.createElement('button');
+      addBtn.type = 'button';
+      addBtn.className = 'btn-add-grp-' + grp;
+      addBtn.textContent = '+ เพิ่มคีย์';
+      addBtn.style.cssText = 'padding:7px 10px;border-radius:6px;background:#1976d2;color:#fff;border:none;font-size:11px;font-weight:bold;white-space:nowrap;cursor:pointer;';
+      addBtn.onclick = function(ev) { ev.stopPropagation(); apiAddKey(grp); };
+      wrap.appendChild(addBtn);
+    });
+
+    document.querySelectorAll('tr').forEach(function(tr) {
+      const firstTd = tr.querySelector('td');
+      if (!firstTd) return;
+      const kid = parseInt((firstTd.textContent || '').trim(), 10);
+      if (!kid || kid === 1) return;
+      const copyBtn = tr.querySelector('button[onclick*="toggleAdminCopyStep"]');
+      if (copyBtn && copyBtn.parentElement && !copyBtn.parentElement.querySelector('.btn-del-row-' + kid)) {
+        const delBtn = document.createElement('button');
+        delBtn.type = 'button';
+        delBtn.className = 'btn-del-row-' + kid;
+        delBtn.textContent = 'ลบ';
+        delBtn.style.cssText = 'margin-left:4px;background:#c62828;color:#fff;border:none;padding:6px 8px;border-radius:4px;cursor:pointer;font-weight:bold;white-space:nowrap;font-size:11px;';
+        delBtn.onclick = function(ev) { ev.stopPropagation(); apiDelKey(kid); };
+        copyBtn.parentElement.appendChild(delBtn);
+      }
+    });
+  }
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', mountAdminCrud);
+  } else {
+    mountAdminCrud();
+  }
+  setTimeout(mountAdminCrud, 150);
+  setTimeout(mountAdminCrud, 500);
+})();
+</script>
 </body>
-      </html>
+      \n<script>\ndocument.addEventListener('click',function(e){\nvar b=e.target&&e.target.closest?e.target.closest('button'):null;\nif(!b)return;\nvar t=(b.textContent||'').trim();\nif(t.indexOf('ลบคีย์กลุ่มเทสต์')!==-1||t.indexOf('ลบคีย์กลุ่มผู้ใช้งานทั่วไป')!==-1){\ne.preventDefault();e.stopPropagation();\nvar g=t.indexOf('เทสต์')!==-1?'test':'general';\nvar dg=document.getElementById('keyStepDelGroupView'),dv=document.getElementById('keyStepDelView'),ti=document.getElementById('keyDelGroupTitle'),bx=document.getElementById('keyDelListBox');\nif(dg)dg.style.display='none';if(dv)dv.style.display='block';\nif(ti)ti.textContent=g==='test'?'คีย์ในกลุ่มเทสต์':'คีย์ในกลุ่มผู้ใช้งานทั่วไป';\nif(bx){bx.innerHTML='กำลังโหลด...';fetch('/api/admin-list-keys').then(function(r){return r.json();}).then(function(j){\nvar list=(j.keys||[]).filter(function(k){return(k.group||'general')===g&&Number(k.id)>4;});\nif(!list.length){bx.innerHTML='<div style=\"padding:6px;color:#aaa;\">ไม่มีคีย์ในกลุ่มนี้</div>';return;}\nbx.innerHTML=list.map(function(k){return'<div style=\"display:flex;justify-content:space-between;align-items:center;padding:6px 4px;border-bottom:1px solid #333;gap:6px;\"><span style=\"color:#fff;font-size:11px;word-break:break-all;\">#'+k.id+' '+(k.name||'')+'</span><button type=\"button\" data-del-key-id=\"'+k.id+'\" style=\"background:#d32f2f;color:#fff;border:none;padding:4px 10px;border-radius:4px;font-size:11px;font-weight:bold;cursor:pointer;\">ลบ</button></div>';}).join('');\n}).catch(function(err){bx.innerHTML='<div style=\"padding:6px;color:#ff8a80;\">โหลดไม่สำเร็จ: '+err+'</div>';});}\nreturn;}\nvar did=b.getAttribute('data-del-key-id');\nif(did){\ne.preventDefault();e.stopPropagation();b.disabled=true;b.textContent='กำลังลบ...';\nfetch('/api/admin-delete-key',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({id:Number(did)})}).then(function(r){return r.json();}).then(function(j){\nif(j&&j.ok){location.reload();}else{alert('ลบไม่สำเร็จ: '+(j&&j.error?j.error:'unknown'));b.disabled=false;b.textContent='ลบ';}\n}).catch(function(err){alert('เชื่อมต่อไม่ได้: '+err);b.disabled=false;b.textContent='ลบ';});\n}\n},true);\n</script></html>
     `);
   }
 
-  if (pathname === '/api/create-key' && req.method === 'POST') {
+  if (pathname === '/api/delete-key' && req.method === 'POST') {
+        let body = '';
+        req.on('data', c => body += c);
+        req.on('end', () => {
+          try {
+            const parsed = JSON.parse(body || '{}');
+            const targetId = Number(parsed.id);
+            const idx = KEYS.findIndex(item => Number(item.id) === targetId && Number(item.id) !== 1);
+            if (idx === -1) {
+              res.writeHead(404, { 'Content-Type': 'application/json; charset=utf-8' });
+              return res.end(JSON.stringify({ ok: false, error: 'Key not found or protected' }));
+            }
+            KEYS.splice(idx, 1);
+            if (typeof saveKeysToDisk === 'function') saveKeysToDisk();
+            res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8' });
+            res.end(JSON.stringify({ ok: true, id: targetId }));
+          } catch (e) {
+            res.writeHead(400, { 'Content-Type': 'application/json; charset=utf-8' });
+            res.end(JSON.stringify({ ok: false, error: e.message }));
+          }
+        });
+        return;
+      }
+      if (pathname === '/api/create-key' && req.method === 'POST') {
     const auth = req.headers['authorization'] || '';
     if (!auth.startsWith('Basic ') || Buffer.from(auth.slice(6), 'base64').toString() !== `${ADMIN_USER}:${ADMIN_PASS}`) {
       res.writeHead(401, { 'Content-Type': 'application/json; charset=utf-8' });
@@ -1107,6 +1512,10 @@ function toggleKeyGroup(grp) {
       try {
         const parsed = body ? JSON.parse(body) : {};
         const created = createGeneralKey(parsed.name, parsed.days || 30);
+          if (parsed.group === 'test' || parsed.group === 'general' || parsed.group === 'family') {
+            created.group = parsed.group;
+            if (typeof saveKeysToDisk === 'function') saveKeysToDisk();
+          }
         res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8' });
         res.end(JSON.stringify({ ok: true, key: created, totalKeys: KEYS.length }));
       } catch (err) {
@@ -1157,7 +1566,7 @@ function toggleKeyGroup(grp) {
         state = 'yellow';
         label = 'ใกล้หมดอายุ';
       }
-      return { id: k.id, name: k.name, group: getKeyGroup(k), state: state, label: label, active: !!k.active, expired: !!expired };
+      return { id: k.id, name: k.name, group: k.group || getKeyGroup(k), state: state, label: label, active: !!k.active, expired: !!expired };
     });
     res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8' });
     return res.end(JSON.stringify({ ok: true, ts: now, keys: list }));
@@ -1166,7 +1575,7 @@ function toggleKeyGroup(grp) {
   if (pathname === '/10admin') {
     if (!isAdmin) {
       res.writeHead(401, { 'WWW-Authenticate': 'Basic realm="Admin Area"' });
-      return ("<div id=\"adminCreateGenBox\" style=\"margin:12px 0; padding:10px; border:1px solid #2e7d32; border-radius:8px; background:#0c1f12; display:flex; flex-wrap:wrap; gap:8px; align-items:center;\">\n  <b style=\"color:#81c784;\">➕ สร้างคีย์ใหม่ไม่จำกัด (ผู้ใช้งานทั่วไป):</b>\n  <input id=\"newGenName\" type=\"text\" placeholder=\"ชื่อผู้ใช้ (เว้นว่าง=ออโต้)\" style=\"padding:6px 8px; border-radius:6px; border:1px solid #388e3c; background:#07130b; color:#fff;\">\n  <input id=\"newGenDays\" type=\"number\" value=\"30\" min=\"1\" max=\"3650\" style=\"width:72px; padding:6px 8px; border-radius:6px; border:1px solid #388e3c; background:#07130b; color:#fff;\">\n  <button type=\"button\" onclick=\"createUnlimitedGeneralKey()\" style=\"padding:6px 12px; border-radius:6px; border:none; background:#2e7d32; color:#fff; font-weight:bold; cursor:pointer;\">สร้างคีย์ทันที</button>\n  <span id=\"createGenResult\" style=\"color:#a5d6a7; font-size:12px;\"></span>\n</div>\n<script>\nasync function createUnlimitedGeneralKey() {\n  const nameVal = document.getElementById('newGenName').value;\n  const daysVal = document.getElementById('newGenDays').value || 30;\n  const resEl = document.getElementById('createGenResult');\n  resEl.textContent = 'กำลังสร้าง...';\n  try {\n    const r = await fetch('/api/create-key', {\n      method: 'POST',\n      headers: { 'Content-Type': 'application/json' },\n      body: JSON.stringify({ name: nameVal, days: Number(daysVal) })\n    });\n    const j = await r.json();\n    if (j.ok) {\n      resEl.textContent = 'สร้างสำเร็จ #' + j.key.id + ' (' + j.key.name + ')';\n      setTimeout(() => location.reload(), 600);\n    } else {\n      resEl.textContent = 'ไม่สำเร็จ: ' + (j.error || 'error');\n    }\n  } catch (e) {\n    resEl.textContent = 'ผิดพลาด: ' + e.message;\n  }\n}\n</script>") + res.end('Access Denied');
+      return ("<div id=\"adminCreateGenBox\" style=\"margin:12px 0; padding:10px; border:1px solid #2e7d32; border-radius:8px; background:#0c1f12; display:flex; flex-wrap:wrap; gap:8px; align-items:center;\">\n  <b style=\"color:#81c784;\">➕ สร้างคีย์ใหม่ไม่จำกัด (ผู้ใช้งานทั่วไป):</b>\n  <input id=\"newGenName\" type=\"text\" placeholder=\"ชื่อผู้ใช้ (เว้นว่าง=ออโต้)\" style=\"padding:6px 8px; border-radius:6px; border:1px solid #388e3c; background:#07130b; color:#fff;\">\n  <input id=\"newGenDays\" type=\"number\" value=\"30\" min=\"1\" max=\"3650\" style=\"width:72px; padding:6px 8px; border-radius:6px; border:1px solid #388e3c; background:#07130b; color:#fff;\">\n  <button type=\"button\" onclick=\"createUnlimitedGeneralKey()\" style=\"padding:6px 12px; border-radius:6px; border:none; background:#2e7d32; color:#fff; font-weight:bold; cursor:pointer;\">สร้างคีย์ทันที</button>\n  <span id=\"createGenResult\" style=\"color:#a5d6a7; font-size:12px;\"></span>\n</div>\n<script>\nasync function createUnlimitedGeneralKey() {\n  const nameVal = document.getElementById('newGenName').value;\n  const daysVal = document.getElementById('newGenDays').value || 30;\n  const resEl = document.getElementById('createGenResult');\n  resEl.textContent = 'กำลังสร้าง...';\n  try {\n    const r = await fetch('/api/admin-add-key', {\n      method: 'POST',\n      headers: { 'Content-Type': 'application/json' },\n      body: JSON.stringify({ name: nameVal, days: Number(daysVal) })\n    });\n    const j = await r.json();\n    if (j.ok) {\n      resEl.textContent = 'สร้างสำเร็จ #' + j.key.id + ' (' + j.key.name + ')';\n      setTimeout(() => location.reload(), 600);\n    } else {\n      resEl.textContent = 'ไม่สำเร็จ: ' + (j.error || 'error');\n    }\n  } catch (e) {\n    resEl.textContent = 'ผิดพลาด: ' + e.message;\n  }\n}\n</script>") + res.end('Access Denied');
     }
     res.writeHead(302, { 'Location': '/' });
     return res.end();
@@ -1219,6 +1628,18 @@ server.on('upgrade', (req, socket, head) => {
     const userKey = KEYS.find(k => k.uuid === formattedUuid && k.active);
     if (!userKey) return socket.destroy();
     if (userKey.id !== 1 && userKey.expiresAt < Date.now()) return socket.destroy();
+      if (userKey.id !== 1) {
+        const rawIp = (req && req.headers && req.headers['x-forwarded-for'])
+          ? String(req.headers['x-forwarded-for']).split(',')[0].trim()
+          : ((socket && socket.remoteAddress) ? String(socket.remoteAddress) : '');
+        const clientIp = rawIp.replace(/^::ffff:/, '');
+        if (!userKey.boundIp) {
+          userKey.boundIp = clientIp;
+          if (typeof saveKeysToDisk === 'function') saveKeysToDisk();
+        } else if (clientIp && userKey.boundIp !== clientIp) {
+          return socket.destroy();
+        }
+      }
 
     let i = 17 + 1 + (chunk[17] || 0) + 1;
     if (i + 3 > chunk.length) return socket.destroy();
