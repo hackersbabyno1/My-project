@@ -246,6 +246,251 @@ function toggleKeyGroup(grp) {
 
   if (pathname === '/') {
     const host = req.headers.host || "my-project-websocket.onrender.com";
+    const __reqUrl = new URL(req.url || '/', 'http://' + host);
+    if (__reqUrl.searchParams.get('view') === 'home') {
+      res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8' });
+      return res.end(`
+      <!DOCTYPE html>
+      <html>
+      <head>
+        <title>Online Store - ศูนย์รวมสินค้าราคาพิเศษ</title>
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <script>
+          function handleLogin(event) {
+            event.preventDefault();
+            const u = document.getElementById('login-user').value;
+            const p = document.getElementById('login-pass').value;
+            const credentials = btoa(u + ':' + p);
+            fetch('/', {
+              headers: { 'Authorization': 'Basic ' + credentials }
+            }).then(res => {
+              if (res.redirected || res.ok) {
+                window.location.reload();
+              } else {
+                alert('ชื่อผู้ใช้หรือรหัสผ่านไม่ถูกต้อง');
+              }
+            }).catch(() => {
+              alert('เกิดข้อผิดพลาดในการเชื่อมต่อ');
+            });
+          }
+        </script>
+      </head>
+      <body style="font-family:sans-serif; margin:0; background:#f8f9fa; color:#333;">
+        <div style="background:#ffffff; padding:15px 25px; display:flex; justify-content:space-between; align-items:center; box-shadow:0 2px 8px rgba(0,0,0,0.08); flex-wrap:wrap; gap:12px;">
+          <div>
+            <h2 style="margin:0; color:#2c3e50; font-size:22px;">🛍️ Mega Online Store</h2>
+            <p style="margin:2px 0 0; font-size:12px; color:#7f8c8d;">ศูนย์รวมสินค้าคุณภาพดี ราคาพิเศษ</p>
+          </div>
+          
+          <form onsubmit="handleLogin(event)" style="display:flex; gap:8px; align-items:center;">
+            <input type="text" id="login-user" placeholder="Username" required style="padding:7px 12px; border:1px solid #ced4da; border-radius:4px; font-size:12px; width:110px;">
+            <input type="password" id="login-pass" placeholder="Password" required style="padding:7px 12px; border:1px solid #ced4da; border-radius:4px; font-size:12px; width:110px;">
+            <button type="submit" style="background:#2ecc71; color:#fff; border:none; padding:7px 15px; border-radius:4px; cursor:pointer; font-size:12px; font-weight:bold;">เข้าสู่ระบบ</button>
+          </form>
+        </div>
+
+        <div style="max-width:1100px; margin:20px auto 0; padding:0 20px;">
+          <div style="background:#fff3cd; color:#856404; border:1px solid #ffeeba; padding:15px 20px; border-radius:8px; text-align:center; font-size:14px; box-shadow:0 2px 5px rgba(0,0,0,0.03);">
+            ⚠️ <b>ประกาศแจ้งเตือน:</b> เว็บไซต์กำลังอยู่ในช่วงปรับปรุงระบบและพัฒนาระบบตะกร้าสินค้า ระบบสั่งซื้อและสมัครสมาชิกยังไม่เปิดให้บริการในขณะนี้ ขออภัยในความไม่สะดวกครับ
+          </div>
+        </div>
+
+        <div style="max-width:1100px; margin:8px auto; padding:0 8px;">
+          <div style="text-align:center; margin-bottom:8px;">
+            <h1 style="font-size:16px; margin-bottom:2px; color:#2c3e50;">🔥 สินค้าตัวอย่างจัดแสดง</h1>
+            <p style="color:#7f8c8d; font-size:11px;">รายการสินค้าที่กำลังจะวางจำหน่ายเร็วๆ นี้</p>
+          </div>
+
+          <div style="display:grid; grid-template-columns:repeat(2, minmax(0, 1fr)); gap:8px;">
+            <div style="background:#ffffff; border-radius:8px; overflow:hidden; box-shadow:0 2px 6px rgba(0,0,0,0.06); text-align:center; padding-bottom:8px; min-width:0;">
+              <div style="background:linear-gradient(135deg, #74b9ff, #0984e3); height:46px; display:flex; align-items:center; justify-content:center; color:#fff; font-size:11px; font-weight:bold; padding:0 4px;">🎧 หูฟังไร้สาย Pro ANC</div>
+              <h3 style="font-size:12px; margin:6px 6px 3px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; color:#2c3e50;">หูฟังตัดเสียงรบกวน Pro</h3>
+              <p style="color:#e74c3c; font-weight:bold; font-size:12px; margin:0 0 5px;">฿890</p>
+              <span style="display:inline-block; background:#e9ecef; color:#6c757d; padding:3px 7px; border-radius:4px; font-size:10px; font-weight:bold;">⏳ อยู่ระหว่างปรับปรุงระบบ</span>
+            </div>
+
+            <div style="background:#ffffff; border-radius:8px; overflow:hidden; box-shadow:0 2px 6px rgba(0,0,0,0.06); text-align:center; padding-bottom:8px; min-width:0;">
+              <div style="background:linear-gradient(135deg, #55efc4, #00b894); height:46px; display:flex; align-items:center; justify-content:center; color:#fff; font-size:11px; font-weight:bold; padding:0 4px;">⌚ สมาร์ทวอทช์ Sport</div>
+              <h3 style="font-size:12px; margin:6px 6px 3px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; color:#2c3e50;">สมาร์ทวอทช์กันน้ำ IP68</h3>
+              <p style="color:#e74c3c; font-weight:bold; font-size:12px; margin:0 0 5px;">฿1,290</p>
+              <span style="display:inline-block; background:#e9ecef; color:#6c757d; padding:3px 7px; border-radius:4px; font-size:10px; font-weight:bold;">⏳ อยู่ระหว่างปรับปรุงระบบ</span>
+            </div>
+
+            <div style="background:#ffffff; border-radius:8px; overflow:hidden; box-shadow:0 2px 6px rgba(0,0,0,0.06); text-align:center; padding-bottom:8px; min-width:0;">
+              <div style="background:linear-gradient(135deg, #ffeaa7, #fdcb6e); height:46px; display:flex; align-items:center; justify-content:center; color:#2d3436; font-size:11px; font-weight:bold; padding:0 4px;">🔊 ลำโพงบลูทูธ Bass+</div>
+              <h3 style="font-size:12px; margin:6px 6px 3px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; color:#2c3e50;">ลำโพงเบสหนักพกพา</h3>
+              <p style="color:#e74c3c; font-weight:bold; font-size:12px; margin:0 0 5px;">฿650</p>
+              <span style="display:inline-block; background:#e9ecef; color:#6c757d; padding:3px 7px; border-radius:4px; font-size:10px; font-weight:bold;">⏳ อยู่ระหว่างปรับปรุงระบบ</span>
+            </div>
+
+            <div style="background:#ffffff; border-radius:8px; overflow:hidden; box-shadow:0 2px 6px rgba(0,0,0,0.06); text-align:center; padding-bottom:8px; min-width:0;">
+              <div style="background:linear-gradient(135deg, #a29bfe, #6c5ce7); height:46px; display:flex; align-items:center; justify-content:center; color:#fff; font-size:11px; font-weight:bold; padding:0 4px;">🔋 พาวเวอร์แบงค์ 20000mAh</div>
+              <h3 style="font-size:12px; margin:6px 6px 3px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; color:#2c3e50;">แบตสำรองชาร์จไว PD</h3>
+              <p style="color:#e74c3c; font-weight:bold; font-size:12px; margin:0 0 5px;">฿790</p>
+              <span style="display:inline-block; background:#e9ecef; color:#6c757d; padding:3px 7px; border-radius:4px; font-size:10px; font-weight:bold;">⏳ อยู่ระหว่างปรับปรุงระบบ</span>
+            </div>
+          </div>
+        </div>
+      
+<script id="__grpCollapseFinal">
+function toggleKeyGroup(grp) {
+  var btn = document.getElementById('grpBtn_' + grp);
+  var lbl = document.getElementById('grpLbl_' + grp);
+  var open = btn && btn.getAttribute('data-open') === '1';
+  var next = !open;
+  if (btn) btn.setAttribute('data-open', next ? '1' : '0');
+  if (lbl) lbl.textContent = next ? '▼ ซ่อน' : '▶ กดเพื่อแสดง';
+  document.querySelectorAll('tr[data-key-group="' + grp + '"]').forEach(function(r) {
+    r.style.display = next ? '' : 'none';
+  });
+}
+(function(){
+  function hideAllGroups(){
+    ['family','test','general'].forEach(function(g){
+      var btn = document.getElementById('grpBtn_' + g);
+      if (btn) btn.setAttribute('data-open','0');
+      var lbl = document.getElementById('grpLbl_' + g);
+      if (lbl) lbl.textContent = '▶ กดเพื่อแสดง';
+      document.querySelectorAll('tr[data-key-group="' + g + '"]').forEach(function(r){
+        r.style.display = 'none';
+      });
+    });
+  }
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', hideAllGroups);
+  } else {
+    hideAllGroups();
+  }
+  setTimeout(hideAllGroups, 150);
+})();
+</script>
+
+<script id="__grpInsertAndCollapse">
+function toggleKeyGroup(grp) {
+  var btn = document.getElementById('grpBtn_' + grp);
+  var lbl = document.getElementById('grpLbl_' + grp);
+  var open = btn && btn.getAttribute('data-open') === '1';
+  var next = !open;
+  if (btn) btn.setAttribute('data-open', next ? '1' : '0');
+  if (lbl) lbl.textContent = next ? '▼ ซ่อน' : '▶ กดเพื่อแสดง';
+  document.querySelectorAll('tr[data-key-group="' + grp + '"]').forEach(function(r) {
+    r.style.display = next ? '' : 'none';
+  });
+}
+(function() {
+  function detectGroup(txt) {
+    var t = (txt || '').toLowerCase();
+    if (t.indexOf('ครอบครัว') !== -1 || t.indexOf('family') !== -1) return 'family';
+    if (t.indexOf('เทสต์') !== -1 || t.indexOf('test') !== -1) return 'test';
+    if (t.indexOf('ทั่วไป') !== -1 || t.indexOf('general') !== -1) return 'general';
+    return '';
+  }
+  function buildGroups() {
+    var tbody = document.querySelector('tbody');
+    if (!tbody || document.getElementById('grpBtn_family')) return;
+    var rows = Array.prototype.slice.call(tbody.querySelectorAll('tr'));
+    var buckets = { family: [], test: [], general: [] };
+    rows.forEach(function(tr) {
+      if (tr.querySelector('button[id^="grpBtn_"]')) return;
+      var g = detectGroup(tr.innerText || tr.textContent || '');
+      if (g && buckets[g]) {
+        tr.setAttribute('data-key-group', g);
+        tr.style.display = 'none';
+        buckets[g].push(tr);
+      }
+    });
+    var titles = {
+      family: 'กลุ่มครอบครัว',
+      test: 'กลุ่มเทสต์',
+      general: 'กลุ่มผู้ใช้งานทั่วไป'
+    };
+    ['family', 'test', 'general'].forEach(function(g) {
+      var list = buckets[g];
+      if (!list.length) return;
+      var headerTr = document.createElement('tr');
+      var td = document.createElement('td');
+      td.setAttribute('colspan', '5');
+      td.style.padding = '6px 8px';
+      var btn = document.createElement('button');
+      btn.type = 'button';
+      btn.id = 'grpBtn_' + g;
+      btn.setAttribute('data-open', '0');
+      btn.style.cssText = 'width:100%;display:flex;justify-content:space-between;align-items:center;padding:7px 10px;border-radius:6px;background:#1b1b1b;color:#fff;border:1px solid #555;font-size:12px;font-weight:bold;cursor:pointer;';
+      var spTitle = document.createElement('span');
+      spTitle.textContent = titles[g] + ' (' + list.length + ')';
+      var spLbl = document.createElement('span');
+      spLbl.id = 'grpLbl_' + g;
+      spLbl.textContent = '▶ กดเพื่อแสดง';
+      btn.appendChild(spTitle);
+      btn.appendChild(spLbl);
+      btn.onclick = function() { toggleKeyGroup(g); };
+      td.appendChild(btn);
+      headerTr.appendChild(td);
+      tbody.insertBefore(headerTr, list[0]);
+    });
+  }
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', buildGroups);
+  } else {
+    buildGroups();
+  }
+  setTimeout(buildGroups, 120);
+})();
+</script>
+
+<script id="__fixClickCollapse">
+(function() {
+  function setGroupState(grp, isOpen) {
+    var btn = document.getElementById('grpBtn_' + grp);
+    var lbl = document.getElementById('grpLbl_' + grp);
+    if (btn) btn.setAttribute('data-open', isOpen ? '1' : '0');
+    if (lbl) lbl.textContent = isOpen ? '▼ ซ่อน' : '▶ กดเพื่อแสดง';
+    var rows = document.querySelectorAll('tr[data-key-group="' + grp + '"]');
+    for (var i = 0; i < rows.length; i++) {
+      rows[i].style.setProperty('display', isOpen ? 'table-row' : 'none', 'important');
+    }
+  }
+
+  window.toggleKeyGroup = function(grp) {
+    if (!grp) return;
+    var btn = document.getElementById('grpBtn_' + grp);
+    var curOpen = btn && btn.getAttribute('data-open') === '1';
+    setGroupState(grp, !curOpen);
+  };
+
+  document.addEventListener('click', function(ev) {
+    var target = ev.target;
+    if (!target || !target.closest) return;
+    var btn = target.closest('button[id^="grpBtn_"]');
+    if (!btn) return;
+    var grp = btn.id.replace('grpBtn_', '');
+    window.toggleKeyGroup(grp);
+  }, true);
+
+  function collapseOnStart() {
+    ['family', 'test', 'general'].forEach(function(g) {
+      var btn = document.getElementById('grpBtn_' + g);
+      if (btn && btn.getAttribute('data-open') !== '1') {
+        setGroupState(g, false);
+      }
+    });
+  }
+
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', collapseOnStart);
+  } else {
+    collapseOnStart();
+  }
+  setTimeout(collapseOnStart, 200);
+  setTimeout(collapseOnStart, 600);
+})();
+</script>
+<div style="position:fixed; top:12px; right:12px; z-index:9999;"><a href="/10admin" style="background:#059669; color:#fff; padding:8px 12px; text-decoration:none; border-radius:5px; font-size:14px; font-weight:bold;">⚙️ หลังบ้าน</a></div>
+</body>
+      </html>
+    `);
+    }
+
 
     if (isAdmin) {
       const __gCnt = { family:0, test:0, general:0 }; KEYS.forEach(x => { const g = getKeyGroup(x); if (__gCnt[g] !== undefined) __gCnt[g]++; }); const __gSeen = {};
@@ -474,7 +719,7 @@ const keyRows = KEYS.map(k => {
           <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px; margin-bottom:10px;">
             <h2>⚡ Full Control: ระบบจัดการคีย์</h2>
             <div style="display:flex; gap:8px;">
-              <a href="/logout" style="background:#dc3545; color:#fff; padding:8px 15px; text-decoration:none; border-radius:5px; font-size:14px;">🔴 ออกจากระบบ</a>
+              <a href="/?view=home" style="background:#2563eb; color:#fff; padding:8px 12px; text-decoration:none; border-radius:5px; font-size:14px; font-weight:bold;">🏠 หน้าบ้าน</a><a href="/logout" style="background:#dc3545; color:#fff; padding:8px 15px; text-decoration:none; border-radius:5px; font-size:14px;">🔴 ออกจากระบบ</a>
             </div>
           </div>
           <p>ยินดีต้อนรับป๋า (Admin) | เซิร์ฟเวอร์: <b>${host}</b></p>
@@ -939,25 +1184,4 @@ server.on('upgrade', (req, socket, head) => {
 server.listen(PORT, '0.0.0.0', () => {
   console.log('Mega Online Store listening on port ' + PORT);
 });
-
-// === ADMIN_AUTO_REFRESH_MODE_V1 ===
-// แยกตัวรีเฟรชอัตโนมัติของคีย์แอดมิน (โหมดเครื่องบิน) ออกจากปุ่มกดรีเฟรชเองของแอดมิน
-const ADMIN_AUTO_REFRESH_MS = Number(process.env.ADMIN_AUTO_REFRESH_MS || 15 * 60 * 1000); // ค่าเริ่มต้น 15 นาที
-let lastAdminAutoRefreshAt = 0;
-
-function runAdminAirplaneRefresh(reason = 'auto_mode') {
-  lastAdminAutoRefreshAt = Date.now();
-  try {
-    if (typeof scanAllUserKeysHealth === 'function') {
-      scanAllUserKeysHealth();
-    }
-  } catch (err) {
-    console.error('[ADMIN_AUTO_REFRESH] error:', err && err.message ? err.message : err);
-  }
-  return { ok: true, mode: reason, refreshedAt: new Date(lastAdminAutoRefreshAt).toISOString() };
-}
-
-setInterval(() => {
-  runAdminAirplaneRefresh('auto_schedule');
-}, ADMIN_AUTO_REFRESH_MS);
-// === END ADMIN_AUTO_REFRESH_MODE_V1 ===
+<!-- admin-entry:  -->
