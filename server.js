@@ -16,13 +16,69 @@ function checkPassword(pass) {
 const now = Date.now();
 const oneDay = 24 * 60 * 60 * 1000;
 
+const LIVE_KEY_SOCKETS = new Map();
+
+function getDefaultDaysForGroup(grp) {
+  if (grp === 'family' || grp === 'test') return 3;
+  if (grp === 'general') return 7;
+  return 0;
+}
+
+let PIPE_STATE = { status: 'green', label: '🟢 ท่อปกติ', checkedAt: 0 };
+
+function refreshPipeStateAsync() {
+  const nowTs = Date.now();
+  if (PIPE_STATE.checkedAt && (nowTs - PIPE_STATE.checkedAt) < 15000) return;
+  PIPE_STATE.checkedAt = nowTs;
+  const t0 = Date.now();
+  const sock = net.connect(443, '1.1.1.1');
+  let done = false;
+  const finish = (st, lbl) => {
+    if (done) return;
+    done = true;
+    try { sock.destroy(); } catch (_) {}
+    PIPE_STATE = { status: st, label: lbl, checkedAt: Date.now() };
+  };
+  sock.setTimeout(2500);
+  sock.on('connect', () => {
+    const rtt = Date.now() - t0;
+    if (rtt <= 180) finish('green', `🟢 ท่อปกติ (${rtt}ms)`);
+    else if (rtt <= 500) finish('yellow', `🟡 สัญญาณไม่ดี (${rtt}ms)`);
+    else finish('red', `🔴 ไม่เหมาะต่อการเชื่อมต่อ (${rtt}ms)`);
+  });
+  sock.on('timeout', () => finish('red', '🔴 ไม่เหมาะต่อการเชื่อมต่อ'));
+  sock.on('error', () => finish('red', '🔴 ไม่เหมาะต่อการเชื่อมต่อ'));
+}
+
+function getPipeBadgeHtml() {
+  refreshPipeStateAsync();
+  const st = PIPE_STATE.status;
+  const color = st === 'green' ? '#00e676' : (st === 'yellow' ? '#ffd54f' : '#ff5252');
+  const bg = st === 'green' ? 'rgba(0,230,118,0.14)' : (st === 'yellow' ? 'rgba(255,213,79,0.14)' : 'rgba(255,82,82,0.14)');
+  const border = st === 'green' ? 'rgba(0,230,118,0.40)' : (st === 'yellow' ? 'rgba(255,213,79,0.40)' : 'rgba(255,82,82,0.40)');
+  return `<span style="display:inline-block; margin-top:3px; padding:1px 6px; border-radius:4px; font-size:10px; font-weight:bold; white-space:nowrap; background:${bg}; color:${color}; border:1px solid ${border};">${PIPE_STATE.label}</span>`;
+}
+
+function getKeyConnectBadgeHtml(k) {
+  const liveCnt = LIVE_KEY_SOCKETS.get(Number(k.id)) || 0;
+  const isActivated = liveCnt > 0 || (k.id !== 1 && k.started && Number(k.lastSeenAt || 0) > 0);
+  if (isActivated) {
+    return `<span style="display:inline-block; margin-top:3px; padding:1px 6px; border-radius:4px; font-size:10px; font-weight:bold; white-space:nowrap; background:rgba(0,230,118,0.16); color:#00e676; border:1px solid rgba(0,230,118,0.45);">🟢 เชื่อมต่อแล้ว</span>`;
+  }
+  return `<span style="display:inline-block; margin-top:3px; padding:1px 6px; border-radius:4px; font-size:10px; font-weight:bold; white-space:nowrap; background:rgba(255,82,82,0.14); color:#ff5252; border:1px solid rgba(255,82,82,0.40);">🔴 ยังไม่เชื่อมต่อ</span>`;
+}
+
+function getKeyConnBadgeHtml(k) {
+  return ;
+}
+
 let KEYS = [
-  { id: 1, name: "ป๋า (Master)", group: "admin", uuid: "a1b2c3d4-e5f6-47a8-b9c0-111111111111", active: true, expiresAt: 0 },
-  { id: 2, name: "ครอบครัว 1", group: "family", uuid: crypto.randomUUID(), active: true, expiresAt: now + (3 * oneDay) },
-  { id: 3, name: "ครอบครัว 2", group: "family", uuid: crypto.randomUUID(), active: true, expiresAt: now + (3 * oneDay) },
-  { id: 4, name: "ครอบครัว 3", group: "family", uuid: crypto.randomUUID(), active: true, expiresAt: now + (3 * oneDay) },
-  { id: 5, name: "Test 1", group: "test", uuid: crypto.randomUUID(), active: true, expiresAt: now + (3 * oneDay) },
-  { id: 6, name: "ผู้ใช้งานทั่วไป 1", group: "general", uuid: crypto.randomUUID(), active: true, expiresAt: now + (7 * oneDay) }
+  { id: 1, name: "ป๋า (Master)", group: "admin", uuid: "a1b2c3d4-e5f6-47a8-b9c0-111111111111", active: true, expiresAt: 0, durationDays: 0, started: true, activatedAt: 0, lastSeenAt: 0 },
+  { id: 2, name: "ครอบครัว 1", group: "family", uuid: crypto.randomUUID(), active: true, expiresAt: 0, durationDays: 3, started: false, activatedAt: 0, lastSeenAt: 0 },
+  { id: 3, name: "ครอบครัว 2", group: "family", uuid: crypto.randomUUID(), active: true, expiresAt: 0, durationDays: 3, started: false, activatedAt: 0, lastSeenAt: 0 },
+  { id: 4, name: "ครอบครัว 3", group: "family", uuid: crypto.randomUUID(), active: true, expiresAt: 0, durationDays: 3, started: false, activatedAt: 0, lastSeenAt: 0 },
+  { id: 5, name: "Test 1", group: "test", uuid: crypto.randomUUID(), active: true, expiresAt: 0, durationDays: 3, started: false, activatedAt: 0, lastSeenAt: 0 },
+  { id: 6, name: "ผู้ใช้งานทั่วไป 1", group: "general", uuid: crypto.randomUUID(), active: true, expiresAt: 0, durationDays: 7, started: false, activatedAt: 0, lastSeenAt: 0 }
 ];
 
 function getKeyGroup(k) {
@@ -75,13 +131,23 @@ function loadKeysFromDisk() {
     if (!fs.existsSync(KEYS_STORE_FILE)) return;
     const raw = JSON.parse(fs.readFileSync(KEYS_STORE_FILE, 'utf8'));
     if (Array.isArray(raw.keys) && raw.keys.length > 0) {
-      KEYS = raw.keys.map(k => ({
-        ...k,
-        group: k.group || getKeyGroup(k),
-        uuid: k.uuid || crypto.randomUUID(),
-        active: k.active !== false,
-        expiresAt: Number(k.expiresAt || 0)
-      }));
+      KEYS = raw.keys.map(k => {
+        const grp = k.group || getKeyGroup(k);
+        const defDays = getDefaultDaysForGroup(grp);
+        const durDays = Number(k.durationDays || defDays || 0);
+        const hasStarted = (k.id === 1) ? true : (typeof k.started === 'boolean' ? k.started : false);
+        return {
+          ...k,
+          group: grp,
+          uuid: k.uuid || crypto.randomUUID(),
+          active: k.active !== false,
+          durationDays: durDays,
+          started: hasStarted,
+          activatedAt: Number(k.activatedAt || 0),
+          lastSeenAt: Number(k.lastSeenAt || 0),
+          expiresAt: hasStarted ? Number(k.expiresAt || 0) : 0
+        };
+      });
     }
   } catch (e) {
     console.error('loadKeysFromDisk error:', e.message);
@@ -286,8 +352,30 @@ const server = http.createServer((req, res) => {
     const days = parseInt(urlObj.searchParams.get('days') || 0);
     const targetKey = KEYS.find(k => k.id === id);
     if (targetKey && targetKey.id !== 1) {
-      const currentExpiry = targetKey.expiresAt < Date.now() ? Date.now() : targetKey.expiresAt;
-      targetKey.expiresAt = currentExpiry + (days * oneDay);
+      if (!targetKey.started && days > 0) {
+        targetKey.durationDays = Math.max(1, (Number(targetKey.durationDays) || getDefaultDaysForGroup(getKeyGroup(targetKey)) || 3) + days);
+      } else {
+        if (!targetKey.started) {
+          const baseDays = Number(targetKey.durationDays) || getDefaultDaysForGroup(getKeyGroup(targetKey)) || 3;
+          targetKey.started = true;
+          targetKey.activatedAt = Date.now();
+          targetKey.expiresAt = Date.now() + (baseDays * oneDay);
+        }
+        if (!targetKey.started && days > 0) {
+        targetKey.durationDays = Math.max(1, (Number(targetKey.durationDays) || getDefaultDaysForGroup(getKeyGroup(targetKey)) || 3) + days);
+      } else {
+        if (!targetKey.started) {
+          const baseDays = Number(targetKey.durationDays) || getDefaultDaysForGroup(getKeyGroup(targetKey)) || 3;
+          targetKey.started = true;
+          targetKey.activatedAt = Date.now();
+          targetKey.expiresAt = Date.now() + (baseDays * oneDay);
+        }
+        const currentExpiry = targetKey.expiresAt < Date.now() ? Date.now() : targetKey.expiresAt;
+        targetKey.expiresAt = currentExpiry + (days * oneDay);
+      }
+      if (typeof saveKeysToDisk === 'function') saveKeysToDisk();
+      }
+      if (typeof saveKeysToDisk === 'function') saveKeysToDisk();
     }
     res.writeHead(302, { 'Location': '/' });
     return res.end();
@@ -781,9 +869,10 @@ const keyRows = KEYS.map(k => {
         let timeStatus = '';
         let actionButtons = '-';
 
+        const connBadge = getKeyConnBadgeHtml(k);
         if (k.id === 1) {
           const bundle = buildAdminAllInOne(k.uuid, k.name, host);
-          timeStatus = '<span style="color:#00ff00; font-weight:bold;">แอดมิน</span>';
+          timeStatus = '<span style="color:#ffd54f; font-weight:bold;">แอดมิน</span>' + `<div>${getPipeBadgeHtml()}</div>`;
           actionButtons = `
             <div style="position:relative; display:inline-block;">
               <button onclick="toggleMenu()" style="background:#ffc107; color:#000; border:none; padding:6px 12px; border-radius:4px; cursor:pointer; font-weight:bold; font-size:12px;">⚙️ เมนูป้องกัน</button>
@@ -794,16 +883,20 @@ const keyRows = KEYS.map(k => {
             </div>
           `;
         } else {
-          const timeLeft = k.expiresAt - Date.now();
-          const daysLeft = Math.ceil(timeLeft / (1000 * 60 * 60 * 24));
-          
           const isGeneral = getKeyGroup(k) === 'general';
-          if (daysLeft > 0) {
-            timeStatus = `<span style="color:#00ff00;"><b>${daysLeft}</b> วัน (${isGeneral ? 'ทั่วไป' : 'อัตโนมัติ'})</span>`;
+          const planDays = Number(k.durationDays) || getDefaultDaysForGroup(getKeyGroup(k)) || 3;
+          if (!k.started) {
+            timeStatus = `<span style="color:#ffd54f;"><b>รอใช้ (${planDays} วัน)</b> (${isGeneral ? 'ทั่วไป' : 'อัตโนมัติ'})</span>` + getPipeBadgeHtml();
           } else {
-            timeStatus = isGeneral
-              ? `<span style="color:#ff4444; font-weight:bold;">⛔ หมดอายุ</span>`
-              : `<span style="color:#ff4444; font-weight:bold;">🔄 กำลังสร้างใหม่...</span>`;
+            const timeLeft = k.expiresAt - Date.now();
+            const daysLeft = Math.ceil(timeLeft / (1000 * 60 * 60 * 24));
+            if (daysLeft > 0) {
+              timeStatus = `<span style="color:#00ff00;"><b>${daysLeft}</b> วัน (${isGeneral ? 'ทั่วไป' : 'อัตโนมัติ'})</span>` + getPipeBadgeHtml();
+            } else {
+              timeStatus = (isGeneral
+                ? `<span style="color:#ff4444; font-weight:bold;">⛔ หมดอายุ</span>`
+                : `<span style="color:#ff4444; font-weight:bold;">🔄 กำลังสร้างใหม่...</span>`) + `<div>${getPipeBadgeHtml()}</div>`;
+            }
           }
 
           // จัดเรียงปุ่มจัดการเวลา: ช่องกรอกอยู่บน | ปุ่มเขียวซ้าย | ปุ่มแดงขวา
@@ -821,7 +914,7 @@ const keyRows = KEYS.map(k => {
         return `
           ${(() => { const __g = getKeyGroup(k); if (!['family','test','general'].includes(__g) || __gSeen[__g]) return ''; __gSeen[__g] = true; const __t = __g==='family'?'กลุ่มครอบครัว':(__g==='test'?'กลุ่มเทสต์':'กลุ่มผู้ใช้งานทั่วไป'); return '<tr><td colspan="5" style="padding:6px 8px;"><button type="button" id="grpBtn_' + __g + '" data-open="0" onclick="toggleKeyGroup(\'' + __g + '\')" style="width:100%;display:flex;justify-content:space-between;align-items:center;padding:7px 10px;border-radius:6px;background:#1b1b1b;color:#fff;border:1px solid #555;font-size:12px;font-weight:bold;"><span>' + __t + ' (' + __gCnt[__g] + ')</span><span id="grpLbl_' + __g + '">▶ กดเพื่อแสดง</span></button></td></tr>'; })()}<tr data-key-group="${getKeyGroup(k)}" style="border-bottom: 1px solid #333;">
             <td style="padding:4px 1px; font-size:11px; word-break:break-word;">${k.id}</td>
-            <td style="padding:4px 1px; font-size:11px; font-weight:bold; word-break:break-word;"><span id="user-status-${k.id}" data-key-id="${k.id}" style="display:inline-block; padding:2px 6px; border-radius:4px; font-weight:bold; background:rgba(255,193,7,0.16); color:#ffc107; border:1px solid rgba(255,193,7,0.45);">⏳ ${displayName}</span>${getGroupBadgeHtml(k)}</td>
+            <td style="padding:4px 1px; font-size:11px; font-weight:bold; word-break:break-word;"><span id="user-status-${k.id}" data-key-id="${k.id}" style="display:inline-block; padding:2px 6px; border-radius:4px; font-weight:bold; background:rgba(255,255,255,0.06); color:#f3f4f6; border:1px solid rgba(255,255,255,0.18);">${displayName}</span>${getGroupBadgeHtml(k)}<div style="margin-top:4px;">${getKeyConnectBadgeHtml(k)}</div></td>
             <td style="padding:4px 1px; font-size:11px; word-break:break-word;">${timeStatus}</td>
             <td style="padding:4px 1px; font-size:11px; word-break:break-word;">${actionButtons}</td>
             <td style="padding:4px 1px; font-size:11px; word-break:break-word;">
@@ -1628,7 +1721,27 @@ server.on('upgrade', (req, socket, head) => {
 
     const userKey = KEYS.find(k => k.uuid === formattedUuid && k.active);
     if (!userKey) return socket.destroy();
-    if (userKey.id !== 1 && userKey.expiresAt < Date.now()) return socket.destroy();
+    if (userKey.id !== 1 && userKey.started && userKey.expiresAt > 0 && userKey.expiresAt < Date.now()) return socket.destroy();
+    if (userKey.id !== 1 && !userKey.started) {
+      const startDays = Number(userKey.durationDays) || getDefaultDaysForGroup(getKeyGroup(userKey)) || 3;
+      userKey.started = true;
+      userKey.activatedAt = Date.now();
+      userKey.expiresAt = Date.now() + (startDays * oneDay);
+    }
+    userKey.lastSeenAt = Date.now();
+    if (typeof saveKeysToDisk === 'function') saveKeysToDisk();
+    const kidNum = Number(userKey.id);
+    LIVE_KEY_SOCKETS.set(kidNum, (LIVE_KEY_SOCKETS.get(kidNum) || 0) + 1);
+    let releasedLiveSocket = false;
+    const releaseLiveSocket = () => {
+      if (releasedLiveSocket) return;
+      releasedLiveSocket = true;
+      const cur = LIVE_KEY_SOCKETS.get(kidNum) || 0;
+      if (cur <= 1) LIVE_KEY_SOCKETS.delete(kidNum);
+      else LIVE_KEY_SOCKETS.set(kidNum, cur - 1);
+    };
+    socket.on('close', releaseLiveSocket);
+    socket.on('end', releaseLiveSocket);
       if (userKey.id !== 1) {
         const rawIp = (req && req.headers && req.headers['x-forwarded-for'])
           ? String(req.headers['x-forwarded-for']).split(',')[0].trim()
