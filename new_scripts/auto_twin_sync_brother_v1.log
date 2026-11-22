@@ -1,4 +1,4 @@
-[2026-11-20 00:55:40] started auto_twin_sync_brother_v1 -> 100.70.177.127:25003 every 20s
+[2026-11-20 00:55:40] started auto_twin_sync_brother_v1 -> 162.35.47.89:25003 every 20s
 [2026-11-20 00:55:41] sync_tick ok | twin_reachable=True | mem_bytes=1001500
 [2026-11-20 00:56:02] sync_tick ok | twin_reachable=True | mem_bytes=1001500
 [2026-11-20 00:56:23] sync_tick ok | twin_reachable=True | mem_bytes=1001500

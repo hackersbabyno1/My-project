@@ -6,7 +6,7 @@ K5_PATH = os.path.join(NEW_SCRIPTS_DIR, "ws_family_5keys_v1.py")
 
 EXIT_NODE_VPS = {
     "hostname": "vps3846112",
-    "tailscale_ip": "100.70.177.127",
+    "tailscale_ip": "162.35.47.89",
     "os": "linux",
     "offers_exit_node": True,
 }

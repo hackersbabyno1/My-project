@@ -1,7 +1,7 @@
 {
   "updated_at_th_24h": "2026-11-21 05:45:56",
   "admin_agent": "brother_15001",
-  "twin_target": "100.70.177.127:25003",
+  "twin_target": "162.35.47.89:25003",
   "shared_memory_path": "/data/data/com.termux/files/home/work_new/github_render_clean/memory.json",
   "shared_memory_bytes": 1001500,
   "last_unified": "2026-11-20 00:50:48",

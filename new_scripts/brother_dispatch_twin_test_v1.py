@@ -6,7 +6,7 @@ GH_DIR = os.path.join(HOME, "work_new/github_render_clean")
 CORE_SRC = os.path.join(GH_DIR, "new_scripts/bot_core_render_v1.py")
 REPORT_OUT = os.path.join(GH_DIR, "new_scripts/brother_twin_dispatch_report_v1.json")
 
-TWIN_HOST = os.environ.get("TWIN_BOT_HOST", "100.70.177.127")
+TWIN_HOST = os.environ.get("TWIN_BOT_HOST", "162.35.47.89")
 TWIN_USER = os.environ.get("TWIN_SSH_USER", "root")
 TWIN_DST_DIR = "/root/work_new/bot_02_debian/test_render_v1"
 

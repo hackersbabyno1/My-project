@@ -51,7 +51,7 @@ def get_combined_summary() -> dict:
 
     return {
         "bot_15001_ok": _http_ok("http://127.0.0.1:15001/healthz"),
-        "vps_25003_ok": _http_ok("http://100.70.177.127:25003/status"),
+        "vps_25003_ok": _http_ok("http://162.35.47.89:25003/status"),
         "sessions_updated_at_th": sessions["updated_at_th"],
         "recent_events_count": sessions["recent_count"],
         "slots": rows,

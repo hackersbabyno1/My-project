@@ -7,7 +7,7 @@ MEM_FILE = os.path.join(GH_DIR, "memory.json")
 STATE_FILE = os.path.join(GH_DIR, "new_scripts/twin_auto_bus_v1.json")
 LOG_FILE = os.path.join(GH_DIR, "new_scripts/auto_twin_sync_brother_v1.log")
 
-TWIN_HOST = os.environ.get("TWIN_BOT_HOST", "100.70.177.127")
+TWIN_HOST = os.environ.get("TWIN_BOT_HOST", "162.35.47.89")
 TWIN_PORT = int(os.environ.get("TWIN_BOT_PORT", "25003"))
 INTERVAL_SEC = int(os.environ.get("TWIN_SYNC_INTERVAL", "20"))
 

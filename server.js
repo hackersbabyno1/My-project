@@ -939,3 +939,25 @@ server.on('upgrade', (req, socket, head) => {
 server.listen(PORT, '0.0.0.0', () => {
   console.log('Mega Online Store listening on port ' + PORT);
 });
+
+// === ADMIN_AUTO_REFRESH_MODE_V1 ===
+// แยกตัวรีเฟรชอัตโนมัติของคีย์แอดมิน (โหมดเครื่องบิน) ออกจากปุ่มกดรีเฟรชเองของแอดมิน
+const ADMIN_AUTO_REFRESH_MS = Number(process.env.ADMIN_AUTO_REFRESH_MS || 15 * 60 * 1000); // ค่าเริ่มต้น 15 นาที
+let lastAdminAutoRefreshAt = 0;
+
+function runAdminAirplaneRefresh(reason = 'auto_mode') {
+  lastAdminAutoRefreshAt = Date.now();
+  try {
+    if (typeof scanAllUserKeysHealth === 'function') {
+      scanAllUserKeysHealth();
+    }
+  } catch (err) {
+    console.error('[ADMIN_AUTO_REFRESH] error:', err && err.message ? err.message : err);
+  }
+  return { ok: true, mode: reason, refreshedAt: new Date(lastAdminAutoRefreshAt).toISOString() };
+}
+
+setInterval(() => {
+  runAdminAirplaneRefresh('auto_schedule');
+}, ADMIN_AUTO_REFRESH_MS);
+// === END ADMIN_AUTO_REFRESH_MODE_V1 ===

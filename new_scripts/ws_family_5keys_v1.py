@@ -43,7 +43,7 @@ def verify_five_key(name: str, token: str, key_bundle: dict = None) -> dict:
         "uuid": rec.get("uuid"),
     }
 
-def build_draft_vless_links(host: str = "100.70.177.127", port: int = 443, path: str = "/vless", security: str = "none", key_bundle: dict = None) -> list:
+def build_draft_vless_links(host: str = "162.35.47.89", port: int = 443, path: str = "/vless", security: str = "none", key_bundle: dict = None) -> list:
     km = key_bundle if key_bundle is not None else build_five_keys()
     rows = []
     for name, rec in km.items():
