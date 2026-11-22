@@ -239,6 +239,39 @@ function toggleKeyGroup(grp) {
   }
 })();
 </script>
+
+<script>
+(function(){
+  function forceCollapseAllGroups(){
+    document.querySelectorAll('tr[data-key-group]').forEach(function(tr){
+      var g = tr.getAttribute('data-key-group');
+      var btn = document.getElementById('grpBtn_' + g);
+      if (!btn || btn.getAttribute('data-open') !== '1') {
+        tr.style.setProperty('display', 'none', 'important');
+      }
+    });
+    document.querySelectorAll('[id^="grpBtn_"]').forEach(function(b){
+      if (b.getAttribute('data-open') !== '1') {
+        b.setAttribute('data-open', '0');
+      }
+    });
+    document.querySelectorAll('[id^="grpLbl_"]').forEach(function(l){
+      var id = l.id.replace('grpLbl_', '');
+      var b = document.getElementById('grpBtn_' + id);
+      if (!b || b.getAttribute('data-open') !== '1') {
+        l.textContent = '▶ กดเพื่อแสดง';
+      }
+    });
+  }
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', forceCollapseAllGroups);
+  } else {
+    forceCollapseAllGroups();
+  }
+  window.addEventListener('load', forceCollapseAllGroups);
+})();
+</script>
+
 </body>
       </html>
     `);
@@ -773,7 +806,47 @@ const keyRows = KEYS.map(k => {
 
             </table>
           </div>
-        </body>
+        
+<script id="__adminGroupCollapse">
+(function(){
+  window.toggleKeyGroup = function(grp) {
+    var btn = document.getElementById('grpBtn_' + grp);
+    var lbl = document.getElementById('grpLbl_' + grp);
+    var open = btn && btn.getAttribute('data-open') === '1';
+    var next = !open;
+    if (btn) btn.setAttribute('data-open', next ? '1' : '0');
+    if (lbl) lbl.textContent = next ? '▼ กดเพื่อซ่อน' : '▶ กดเพื่อแสดง';
+    document.querySelectorAll('tr[data-key-group="' + grp + '"]').forEach(function(r) {
+      if (next) {
+        r.style.removeProperty('display');
+      } else {
+        r.style.setProperty('display', 'none', 'important');
+      }
+    });
+  };
+
+  function collapseAllOnLoad() {
+    ['family','test','general'].forEach(function(g){
+      var btn = document.getElementById('grpBtn_' + g);
+      if (btn) btn.setAttribute('data-open', '0');
+      var lbl = document.getElementById('grpLbl_' + g);
+      if (lbl) lbl.textContent = '▶ กดเพื่อแสดง';
+      document.querySelectorAll('tr[data-key-group="' + g + '"]').forEach(function(r){
+        r.style.setProperty('display', 'none', 'important');
+      });
+    });
+  }
+
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', collapseAllOnLoad);
+  } else {
+    collapseAllOnLoad();
+  }
+  window.addEventListener('load', collapseAllOnLoad);
+})();
+</script>
+
+</body>
         </html>
       `);
     }
