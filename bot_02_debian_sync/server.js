@@ -994,10 +994,11 @@ const keyRows = KEYS.map(k => {
           </script>
         </head>
         <body style="padding:15px;">
+          <div style="display:flex; justify-content:flex-end; margin-bottom:4px;"><a href="/logout" style="background:#991b1b; color:#fca5a5; padding:4px 8px; text-decoration:none; border-radius:4px; font-size:11px; opacity:0.85;">🔴 ออกจากระบบ</a></div>
           <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px; margin-bottom:10px;">
             <h2>⚡ Full Control: ระบบจัดการคีย์</h2>
             <div style="display:flex; gap:8px;">
-              <a href="/?view=home" style="background:#2563eb; color:#fff; padding:8px 12px; text-decoration:none; border-radius:5px; font-size:14px; font-weight:bold;">🏠 หน้าบ้าน</a><a href="/logout" style="background:#dc3545; color:#fff; padding:8px 15px; text-decoration:none; border-radius:5px; font-size:14px;">🔴 ออกจากระบบ</a>
+              <a href="/?view=home" style="background:#2563eb; color:#fff; padding:8px 12px; text-decoration:none; border-radius:5px; font-size:14px; font-weight:bold;">🏠 หน้าบ้าน</a>
 <div style="position:relative;display:inline-block;margin-left:6px;z-index:999;">
   <button type="button" id="btnKeyStepMain" onclick="toggleKeyStepMenu()" style="background:#1976d2;color:#fff;border:none;padding:8px 12px;border-radius:6px;font-weight:bold;cursor:pointer;">🔑 จัดการคีย์ ▾</button>
   <div id="keyStepDropdown" style="display:none;position:absolute;right:0;top:38px;background:#1e1e1e;border:1px solid #555;border-radius:8px;box-shadow:0 8px 20px rgba(0,0,0,0.85);min-width:220px;padding:6px;z-index:9999;">
