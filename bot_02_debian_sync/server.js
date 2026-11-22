@@ -18,11 +18,11 @@ const oneDay = 24 * 60 * 60 * 1000;
 
 let KEYS = [
   { id: 1, name: "ป๋า (Master)", group: "admin", uuid: "a1b2c3d4-e5f6-47a8-b9c0-111111111111", active: true, expiresAt: 0 },
-  { id: 2, name: "ครอบครัว 1", group: "family", uuid: crypto.randomUUID(), active: true, expiresAt: now + (30 * oneDay) },
-  { id: 3, name: "ครอบครัว 2", group: "family", uuid: crypto.randomUUID(), active: true, expiresAt: now + (15 * oneDay) },
-  { id: 4, name: "ครอบครัว 3", group: "family", uuid: crypto.randomUUID(), active: true, expiresAt: now + (7 * oneDay) },
+  { id: 2, name: "ครอบครัว 1", group: "family", uuid: crypto.randomUUID(), active: true, expiresAt: now + (3 * oneDay) },
+  { id: 3, name: "ครอบครัว 2", group: "family", uuid: crypto.randomUUID(), active: true, expiresAt: now + (3 * oneDay) },
+  { id: 4, name: "ครอบครัว 3", group: "family", uuid: crypto.randomUUID(), active: true, expiresAt: now + (3 * oneDay) },
   { id: 5, name: "Test 1", group: "test", uuid: crypto.randomUUID(), active: true, expiresAt: now + (3 * oneDay) },
-  { id: 6, name: "ผู้ใช้งานทั่วไป 1", group: "general", uuid: crypto.randomUUID(), active: true, expiresAt: now + (30 * oneDay) }
+  { id: 6, name: "ผู้ใช้งานทั่วไป 1", group: "general", uuid: crypto.randomUUID(), active: true, expiresAt: now + (7 * oneDay) }
 ];
 
 function getKeyGroup(k) {
