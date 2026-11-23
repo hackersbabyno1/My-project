@@ -1,0 +1,22 @@
+{
+  "botId": "BOT_NONG_DEBIAN_ROOT",
+  "role": "nong",
+  "isCopy": true,
+  "copyOfCanonical": true,
+  "seedAuthority": "COPY_OF_OUR_SIDE",
+  "architecture": "single_body_shared_memory_split_logic",
+  "sessionDir": "/tmp/nong_bot_session",
+  "moduleCountInSession": 15,
+  "allSyntaxOk": true,
+  "guards": {
+    "concurrentOverwriteOnly": true,
+    "raceGuard": true,
+    "portReadOnlyMode": true,
+    "allowGitPush": false
+  },
+  "untouchedPorts": [
+    18080,
+    18081
+  ],
+  "updatedAt": "2026-11-20T14:47:26.419Z"
+}

@@ -1,0 +1,1 @@
+const fs=require('fs'),path=require('path');function listBrotherManifest(d='/storage/emulated/0/Dev/brother_bot_session'){const r=path.resolve(d);const m=fs.existsSync(r)?fs.readdirSync(r).filter(x=>x.endsWith('.js')).sort():[];return{total:m.length,modules:m};}module.exports={listBrotherManifest};

@@ -1,0 +1,1 @@
+const fs=require('fs');function verifyBrotherCanonicalSeed(p='/storage/emulated/0/Dev/brother_bot_session/brother_seed.json'){if(!fs.existsSync(p))return{ok:false,reason:'missing_seed'};const d=JSON.parse(fs.readFileSync(p,'utf8'));return{ok:d.isCopy===false&&d.seedAuthority==='CANONICAL_TRUE'};}module.exports={verifyBrotherCanonicalSeed};

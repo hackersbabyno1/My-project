@@ -1,0 +1,1 @@
+function createBrotherRetryGuard(max=3){const lim=Math.max(1,Number(max)||3);function canRetry(n){return{allowed:(Number(n)||0)<lim,maxRetries:lim};}return{canRetry};}module.exports={createBrotherRetryGuard};

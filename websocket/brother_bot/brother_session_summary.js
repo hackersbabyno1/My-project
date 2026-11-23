@@ -1,0 +1,1 @@
+const fs=require('fs'),path=require('path');function summarizeBrotherSession(d='/storage/emulated/0/Dev/brother_bot_session'){const r=path.resolve(d);const f=fs.existsSync(r)?fs.readdirSync(r):[];return{botSide:'brother',jsCount:f.filter(x=>x.endsWith('.js')).length,jsonCount:f.filter(x=>x.endsWith('.json')).length,gitPushed:false};}module.exports={summarizeBrotherSession};

@@ -1,0 +1,1 @@
+const fs=require('fs'),path=require('path');function buildBrotherHealthSnapshot(d='/storage/emulated/0/Dev/brother_bot_session'){const r=path.resolve(d);const files=fs.existsSync(r)?fs.readdirSync(r).sort():[];return{botSide:'brother',sessionDir:r,fileCount:files.length,untouchedPorts:[18080,18081]};}module.exports={buildBrotherHealthSnapshot};

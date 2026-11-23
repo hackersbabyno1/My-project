@@ -1,0 +1,1 @@
+function createBrotherDedupGuard(win=300){const m=new Map();function checkAndMark(k,now=Date.now()){const key=String(k||'').trim();if(!key)return{duplicate:false};const prev=m.get(key);if(typeof prev==='number'&&now-prev<win)return{duplicate:true,key};m.set(key,now);return{duplicate:false,key};}return{checkAndMark};}module.exports={createBrotherDedupGuard};
