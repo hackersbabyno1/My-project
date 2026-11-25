@@ -1,0 +1,11 @@
+{
+  "seed_name": "websocket_seed_pure",
+  "status": "CANONICAL_VERIFIED",
+  "verified_with_vps": "162.35.47.89",
+  "files": {
+    "server.js": "55d2f532a7d8f6c9f962f0c2dd6ef1ec696a3c92640a16aa6165207c6f6d19e6",
+    "vault_server.mjs": "aef0e57fea816d5e0c1b7e91e86f9fd1411548739e4b4476d9f5bf8fb9bfede0",
+    "dynamic_groups.js": "fb0b9db41a4114ddb34738379fd391f6bded989adde29d71948543f93d7c789f",
+    "dynamic_ui.js": "36d62c68c519794c9a5a95a762f6f9ed55ca2605f9237013b8d3d2de6b629eb1"
+  }
+}
