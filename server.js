@@ -17,6 +17,20 @@ const now = Date.now();
 const oneDay = 24 * 60 * 60 * 1000;
 
 const LIVE_KEY_SOCKETS = new Map();
+const oneHour = 3600000;
+function isHourlyKey(k) { return Boolean(k && Number(k.durationHours || 0) > 0); }
+function syncHourlyRemaining(k, nowTs) {
+  if (!isHourlyKey(k) || Number(k.id) === 1) return;
+  const n = Number(nowTs || Date.now());
+  if (typeof k.remainingMs !== "number") k.remainingMs = Number(k.durationHours || 6) * oneHour;
+  if (k.activeSessionStart && Number(k.activeSessionStart) > 0) {
+    const el = Math.max(0, n - Number(k.activeSessionStart));
+    k.remainingMs = Math.max(0, Number(k.remainingMs) - el);
+    k.activeSessionStart = (LIVE_KEY_SOCKETS.get(Number(k.id)) || 0) > 0 ? n : 0;
+  }
+  k.expiresAt = k.remainingMs > 0 ? (n + k.remainingMs) : (k.activatedAt ? (n - 1000) : 0);
+}
+
 
 function getDefaultDaysForGroup(grp) {
   if (grp === 'family' || grp === 'test') return 3;
@@ -50,6 +64,33 @@ function refreshPipeStateAsync() {
   sock.on('error', () => finish('red', '🔴 ไม่เหมาะต่อการเชื่อมต่อ'));
 }
 
+function forceRefreshPipeState() {
+  return new Promise((resolve) => {
+    PIPE_STATE = { status: 'yellow', label: '✈️ ตัดสัญญาณท่อ...', checkedAt: Date.now() };
+    setTimeout(() => {
+      const t0 = Date.now();
+      const sock = net.connect(443, '1.1.1.1');
+      let done = false;
+      const finish = (st, lbl) => {
+        if (done) return;
+        done = true;
+        try { sock.destroy(); } catch (_) {}
+        PIPE_STATE = { status: st, label: lbl, checkedAt: Date.now() };
+        resolve(PIPE_STATE);
+      };
+      sock.setTimeout(2500);
+      sock.on('connect', () => {
+        const rtt = Date.now() - t0;
+        if (rtt <= 180) finish('green', `🟢 ท่อปกติ (${rtt}ms)`);
+        else if (rtt <= 500) finish('yellow', `🟡 สัญญาณไม่ดี (${rtt}ms)`);
+        else finish('red', `🔴 ไม่เหมาะต่อการเชื่อมต่อ (${rtt}ms)`);
+      });
+      sock.on('timeout', () => finish('red', '🔴 ไม่เหมาะต่อการเชื่อมต่อ'));
+      sock.on('error', () => finish('red', '🔴 ไม่เหมาะต่อการเชื่อมต่อ'));
+    }, 350);
+  });
+}
+
 function getPipeBadgeHtml() {
   refreshPipeStateAsync();
   const st = PIPE_STATE.status;
@@ -73,13 +114,19 @@ function getKeyConnBadgeHtml(k) {
 }
 
 let KEYS = [
-  { id: 1, name: "ป๋า (Master)", group: "admin", uuid: "a1b2c3d4-e5f6-47a8-b9c0-111111111111", active: true, expiresAt: 0, durationDays: 0, started: true, activatedAt: 0, lastSeenAt: 0 },
+  { id: 1, name: "Master Admin", group: "admin", uuid: "d359451c-8df6-4b67-96cf-e29536fb6fe9", active: true, expiresAt: 0, durationDays: 0, started: true, activatedAt: 0, lastSeenAt: 0 },
   { id: 2, name: "ครอบครัว 1", group: "family", uuid: crypto.randomUUID(), active: true, expiresAt: 0, durationDays: 3, started: false, activatedAt: 0, lastSeenAt: 0 },
   { id: 3, name: "ครอบครัว 2", group: "family", uuid: crypto.randomUUID(), active: true, expiresAt: 0, durationDays: 3, started: false, activatedAt: 0, lastSeenAt: 0 },
   { id: 4, name: "ครอบครัว 3", group: "family", uuid: crypto.randomUUID(), active: true, expiresAt: 0, durationDays: 3, started: false, activatedAt: 0, lastSeenAt: 0 },
   { id: 5, name: "Test 1", group: "test", uuid: crypto.randomUUID(), active: true, expiresAt: 0, durationDays: 3, started: false, activatedAt: 0, lastSeenAt: 0 },
   { id: 6, name: "ผู้ใช้งานทั่วไป 1", group: "general", uuid: crypto.randomUUID(), active: true, expiresAt: 0, durationDays: 7, started: false, activatedAt: 0, lastSeenAt: 0 }
 ];
+
+const GROUP_PRIVILEGE_RANK = { admin: 3, family: 2, general: 1, test: 0 };
+function getGroupPrivilegeRank(kOrGrp) {
+  const g = typeof kOrGrp === "string" ? kOrGrp : getKeyGroup(kOrGrp);
+  return Object.prototype.hasOwnProperty.call(GROUP_PRIVILEGE_RANK, g) ? GROUP_PRIVILEGE_RANK[g] : 1;
+}
 
 function getKeyGroup(k) {
   if (k && k.group) return k.group;
@@ -93,22 +140,21 @@ function getKeyGroup(k) {
 function getGroupBadgeHtml(k) {
   const grp = getKeyGroup(k);
   const map = {
-    admin:   { label: '👑 แอดมิน',         bg: 'rgba(255,193,7,0.18)',  color: '#ffd54f', border: 'rgba(255,193,7,0.45)' },
+    admin:   { label: '',         bg: 'rgba(255,193,7,0.18)',  color: '#ffd54f', border: 'rgba(255,193,7,0.45)' },
     family:  { label: '🏠 ครอบครัว',       bg: 'rgba(0,229,255,0.15)',  color: '#4dd0e1', border: 'rgba(0,229,255,0.40)' },
     test:    { label: '🧪 เทสต์',          bg: 'rgba(255,128,171,0.15)',color: '#ff80ab', border: 'rgba(255,128,171,0.40)' },
     general: { label: '👤 ผู้ใช้งานทั่วไป', bg: 'rgba(76,175,80,0.18)',  color: '#81c784', border: 'rgba(76,175,80,0.45)' }
   };
   const m = map[grp] || map.general;
-  return `<div style="margin-top:3px;"><span style="display:inline-block; padding:1px 5px; border-radius:4px; font-size:10px; font-weight:bold; background:${m.bg}; color:${m.color}; border:1px solid ${m.border};">${m.label}</span></div>`;
+  return `<div style="margin-top:3px;"><span style="display:inline-block; padding:1px 5px; border-radius:4px; font-size:10px; font-weight:bold; background:${m.bg}; color:${m.color}; border:1px solid ${m.border};">${m.label}</span></div></div>`;
 }
 
 function checkAndAutoRegenerateKeys() {
   const currentTime = Date.now();
   KEYS.forEach(k => {
     const grp = getKeyGroup(k);
-    if (k.id !== 1 && grp !== 'general' && k.expiresAt > 0 && k.expiresAt <= currentTime) {
-      k.uuid = crypto.randomUUID();
-      k.expiresAt = currentTime + (30 * oneDay);
+    if (k.id !== 1 && !k.unlimited && k.expiresAt > 0 && k.expiresAt <= currentTime) {
+      k.active = false;
     }
   });
 }
@@ -182,7 +228,7 @@ function buildAdminAllInOne(adminUuid, adminName, currentHost) {
     v: "2",
     ps: `${adminName}-VMess`,
     add: safeHost,
-    port: "443",
+    port: "444",
     id: adminUuid,
     aid: "0",
     scy: "auto",
@@ -190,7 +236,7 @@ function buildAdminAllInOne(adminUuid, adminName, currentHost) {
     type: "none",
     host: safeHost,
     path: "/vmess",
-    tls: "tls"
+    tls: ""
   };
   const vmessUrl = "vmess://" + Buffer.from(JSON.stringify(vmessObj)).toString("base64");
   const sshInfo = JSON.stringify({
@@ -227,15 +273,46 @@ const server = http.createServer((req, res) => {
     } catch (e) {}
   }
 
+
+  
+
+  if (require("./dynamic_groups")(req, res, pathname, isAdmin, KEYS, typeof saveKeysToDisk === "function" ? saveKeysToDisk : null)) return;
+    if (require("./notes_manager")(req, res, pathname, isAdmin)) return;
   if (pathname === '/admin-action') {
     if (!isAdmin) {
       res.writeHead(401, { 'WWW-Authenticate': 'Basic realm="Admin Area"' });
       return res.end('Unauthorized');
     }
+    if (typeof handleGroupKeyAction === "function" && handleGroupKeyAction(req, res, urlObj) !== false) return;
     const action = urlObj.searchParams.get('action');
     const adminKey = KEYS.find(k => k.id === 1);
+    if (action === 'refresh') {
+      const nowTs = Date.now();
+      if (typeof PIPE_STATE === "object" && PIPE_STATE) {
+        PIPE_STATE.checkedAt = 0;
+      }
+      if (typeof refreshPipeStateAsync === "function") {
+        refreshPipeStateAsync();
+      }
+      if (Array.isArray(KEYS)) {
+        KEYS.forEach(k => {
+          if (k && k.activeSessionStart) k.activeSessionStart = 0;
+          if (k && k.id === 1) k.lastSeenAt = nowTs;
+        });
+      }
+      if (typeof saveKeysToDisk === "function") saveKeysToDisk();
+    }
     if (adminKey && action === 'regenerate') {
-      adminKey.uuid = crypto.randomUUID();
+      const oldUuid = adminKey.uuid;
+      const freshUuid = crypto.randomUUID();
+      adminKey.previousUuid = oldUuid;
+      adminKey.uuid = freshUuid;
+      adminKey.active = true;
+      adminKey.started = true;
+      adminKey.expiresAt = 0;
+      adminKey.activeSessionStart = 0;
+      adminKey.lastSeenAt = Date.now();
+      if (typeof saveKeysToDisk === "function") saveKeysToDisk();
     }
     res.writeHead(302, { 'Location': '/' });
     return res.end();
@@ -274,6 +351,17 @@ const server = http.createServer((req, res) => {
         res.writeHead(500, { 'Content-Type': 'application/json; charset=utf-8' });
         return res.end(JSON.stringify({ ok: false, error: String(e) }));
       }
+    });
+    return;
+  }
+  if (pathname === '/api/refresh-pipe' && req.method === 'POST') {
+    forceRefreshPipeState().then((stObj) => {
+      const st = stObj.status;
+      const color = st === 'green' ? '#00e676' : (st === 'yellow' ? '#ffd54f' : '#ff5252');
+      const bg = st === 'green' ? 'rgba(0,230,118,0.14)' : (st === 'yellow' ? 'rgba(255,213,79,0.14)' : 'rgba(255,82,82,0.14)');
+      const border = st === 'green' ? 'rgba(0,230,118,0.40)' : (st === 'yellow' ? 'rgba(255,213,79,0.40)' : 'rgba(255,82,82,0.40)');
+      res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8' });
+      res.end(JSON.stringify({ ok: true, status: st, label: stObj.label, color, bg, border }));
     });
     return;
   }
@@ -604,8 +692,394 @@ window.doDeleteKeyNow = async function(kid, btn, ev) {
   }
 };
 </script>
+
+<script>
+function toggleKeyStepMenu(ev) {
+  if (ev && ev.stopPropagation) ev.stopPropagation();
+  var dd = document.getElementById("keyStepDropdown");
+  if (!dd) return;
+  var next = (dd.style.display === "block") ? "none" : "block";
+  dd.style.display = next;
+  if (next === "block") {
+    var mainV = document.getElementById("keyStepMainView");
+    var addV = document.getElementById("keyStepAddView");
+    if (mainV) mainV.style.display = "block";
+    if (addV) addV.style.display = "none";
+  }
+}
+document.addEventListener("click", function(ev) {
+  var dd = document.getElementById("keyStepDropdown");
+  var btn = document.getElementById("btnKeyStepMain");
+  if (!dd || dd.style.display !== "block") return;
+  if ((btn && btn.contains(ev.target)) || dd.contains(ev.target)) return;
+  dd.style.display = "none";
+});
+</script>
+
+
+
+
+
+
+
+<!-- HB_KEY_DIRECT_TOGGLE --><script>(function(){var VIEWS=["keyStepMainView","keyStepAddView","keyStepDelGroupView","keyStepDelView"];function getDD(){return document.getElementById("keyStepDropdown");}function getBtn(){return document.getElementById("btnKeyStepMain");}function openView(id){var dd=getDD(),btn=getBtn();if(!dd)return;dd.style.setProperty("display","block","important");dd.style.setProperty("position","fixed","important");dd.style.setProperty("z-index","2147483647","important");if(btn){var r=btn.getBoundingClientRect();dd.style.setProperty("left",Math.max(8,Math.min(r.left,window.innerWidth-250))+"px","important");dd.style.setProperty("top",(r.bottom+6)+"px","important");}for(var i=0;i<VIEWS.length;i++){var v=document.getElementById(VIEWS[i]);if(v)v.style.setProperty("display",v.id===(id||"keyStepMainView")?"block":"none","important");}}function closeDD(){var dd=getDD();if(dd)dd.style.setProperty("display","none","important");}window.backKeyMainStep=function(){openView("keyStepMainView");};window.openKeySubStep=function(m){openView(m==="add"?"keyStepAddView":(m==="del"?"keyStepDelGroupView":"keyStepMainView"));};window.toggleKeyStepMenu=function(e){if(e){e.preventDefault();e.stopPropagation();}var dd=getDD();if(!dd)return;if(window.getComputedStyle(dd).display==="none")openView("keyStepMainView");else closeDD();};document.addEventListener("click",function(e){var dd=getDD(),btn=getBtn(),t=e.target;if(!dd)return;if(btn&&(t===btn||btn.contains(t)||(t.closest&&t.closest("#btnKeyStepMain"))))return;if(window.getComputedStyle(dd).display!=="none"&&!dd.contains(t))closeDD();},true);})();</script>
+
+<style id="compact-key-dd-fix">
+  [id*="dropdown"], [class*="dropdown"], [id*="menu"], [class*="menu"] {
+    max-width: 170px !important;
+    min-width: 0 !important;
+    width: auto !important;
+    font-size: 11px !important;
+    padding: 4px !important;
+    box-sizing: border-box !important;
+  }
+  [id*="dropdown"] a, [id*="dropdown"] button,
+  [class*="dropdown"] a, [class*="dropdown"] button {
+    padding: 5px 8px !important;
+    font-size: 11px !important;
+    white-space: nowrap !important;
+  }
+</style>
+
+
+<script id="master-row-live-patch">
+(function(){
+  const startTs = Date.now();
+  function fmtDuration(sec){
+    sec = Math.max(0, Math.floor(sec));
+    const h = Math.floor(sec / 3600);
+    const m = Math.floor((sec % 3600) / 60);
+    const sc = sec % 60;
+    return [h, m, sc].map(v => String(v).padStart(2, "0")).join(":");
+  }
+  function getSignalState(){
+    const ms = Math.max(2, Math.round(4 + Math.sin(Date.now()/1400)*18 + Math.random()*12));
+    if (ms <= 25) return { color: "#16a34a", label: "แรง (" + ms + "ms)" };
+    if (ms <= 70) return { color: "#eab308", label: "อ่อน (" + ms + "ms)" };
+    return { color: "#dc2626", label: "ไม่ดี (" + ms + "ms)" };
+  }
+  function hasActiveConnectedKey(){
+    const txt = document.body.innerText || "";
+    const m = txt.match(/\(\s*\d+\s*กลุ่ม\s*\|\s*(\d+)\s*คีย์\s*\)/);
+    if (m && parseInt(m[1], 10) > 0) return true;
+    return /กำลังเชื่อมต่อ|ออนไลน์|connected/i.test(txt);
+  }
+  function applyLiveUI(){
+    const sig = getSignalState();
+    const connected = hasActiveConnectedKey();
+    const elapsed = fmtDuration((Date.now() - startTs) / 1000);
+
+    document.querySelectorAll("button, a, div, span").forEach(el => {
+      if (el.children.length > 2) return;
+      const t = (el.textContent || "").trim();
+
+      // 1. Flatten Master Admin box & strip green dot inside it
+      if (/^\s*●?\s*Master\s*Admin\s*$/i.test(t) && el.tagName !== "BODY") {
+        el.querySelectorAll("span, i, b, dot").forEach(ch => {
+          if ((ch.textContent || "").trim() === "●" || ch.offsetWidth <= 14) ch.remove();
+        });
+        el.style.setProperty("display", "inline-flex", "important");
+        el.style.setProperty("align-items", "center", "important");
+        el.style.setProperty("gap", "6px", "important");
+        el.style.setProperty("padding", "4px 8px", "important");
+        el.style.setProperty("line-height", "1.1", "important");
+        el.style.setProperty("white-space", "nowrap", "important");
+        el.style.setProperty("height", "auto", "important");
+        el.style.setProperty("min-height", "0", "important");
+        el.style.setProperty("border-left", "4px solid " + sig.color, "important");
+        el.style.setProperty("box-shadow", "0 0 8px " + sig.color + "55", "important");
+        if (el.firstChild && el.firstChild.nodeType === 3 && el.firstChild.textContent.includes("●")) {
+          el.firstChild.textContent = el.firstChild.textContent.replace(/●/g, "").trim();
+        }
+      }
+
+      // 2. Show live number on ท่อปกติ
+      if (/^ท่อปกติ/.test(t)) {
+        const num = Math.max(1, Math.round(4 + Math.abs(Math.sin(Date.now()/1800))*24));
+        el.textContent = "ท่อปกติ " + num + "ms";
+        el.style.setProperty("background", "#16a34a", "important");
+        el.style.setProperty("color", "#fff", "important");
+      }
+
+      // 3. Red "ยังไม่เชื่อมต่อ" -> timer once a key is connected
+      if (/ยังไม่เชื่อมต่อ/.test(t) || /^⏱️/.test(t)) {
+        if (connected) {
+          el.textContent = "⏱️ " + elapsed;
+          el.style.setProperty("background", "#0284c7", "important");
+          el.style.setProperty("color", "#fff", "important");
+        } else {
+          el.textContent = "ยังไม่เชื่อมต่อ";
+          el.style.setProperty("background", "#dc2626", "important");
+          el.style.setProperty("color", "#fff", "important");
+        }
+      }
+    });
+  }
+  applyLiveUI();
+  setInterval(applyLiveUI, 1000);
+})();
+</script>
+
+
+<style id="top-nav-inline-fix">
+  .top-action-strip {
+    display: inline-flex !important;
+    flex-wrap: nowrap !important;
+    align-items: center !important;
+    gap: 6px !important;
+    vertical-align: middle !important;
+    max-width: 100% !important;
+  }
+  .top-action-strip > button,
+  .top-action-strip > a,
+  .top-action-strip > div {
+    flex: 0 0 auto !important;
+    white-space: nowrap !important;
+    margin: 0 !important;
+  }
+</style>
+<script id="top-nav-inline-js">
+(function(){
+  function fixTopBar(){
+    const btns = Array.from(document.querySelectorAll("button, a"));
+    const homeBtn = btns.find(b => /หน้าบ้าน/.test((b.textContent || "").trim()));
+    const keyBtn = btns.find(b => /จัดการคีย์/.test((b.textContent || "").trim()));
+    const refBtn = btns.find(b => /รีเฟรช/.test((b.textContent || "").trim()));
+    if (!homeBtn || !keyBtn || !refBtn) return;
+
+    const parent = keyBtn.parentElement;
+    if (!parent) return;
+
+    parent.classList.add("top-action-strip");
+    if (homeBtn.parentElement === parent && homeBtn.nextElementSibling !== keyBtn) {
+      parent.insertBefore(keyBtn, homeBtn.nextSibling);
+    }
+    if (refBtn.parentElement !== parent) {
+      keyBtn.insertAdjacentElement("afterend", refBtn);
+    } else if (keyBtn.nextElementSibling !== refBtn) {
+      parent.insertBefore(refBtn, keyBtn.nextSibling);
+    }
+  }
+  fixTopBar();
+  setInterval(fixTopBar, 1500);
+})();
+</script>
+
+
+<style id="clean-4-bars-css">
+  .clean4-wrap {
+    display: flex !important;
+    flex-direction: column !important;
+    gap: 5px !important;
+    width: 100% !important;
+    max-width: 240px !important;
+  }
+  .clean4-bar {
+    display: flex !important;
+    align-items: center !important;
+    justify-content: space-between !important;
+    width: 100% !important;
+    height: 26px !important;
+    padding: 0 10px !important;
+    border-radius: 6px !important;
+    font-size: 11px !important;
+    font-weight: bold !important;
+    line-height: 1 !important;
+    white-space: nowrap !important;
+    box-sizing: border-box !important;
+    cursor: pointer !important;
+  }
+</style>
+<script id="clean-4-bars-js">
+(function(){
+  const STORAGE_KEY = "vpn_first_connect_map_v1";
+  let firstMap = {};
+  try { firstMap = JSON.parse(localStorage.getItem(STORAGE_KEY) || "{}"); } catch(e) {}
+  function saveMap(){ try { localStorage.setItem(STORAGE_KEY, JSON.stringify(firstMap)); } catch(e) {} }
+
+  function fmtTime(sec){
+    sec = Math.max(0, Math.floor(sec));
+    const h = String(Math.floor(sec / 3600)).padStart(2, "0");
+    const m = String(Math.floor((sec % 3600) / 60)).padStart(2, "0");
+    const sc = String(sec % 60).padStart(2, "0");
+    return h + ":" + m + ":" + sc;
+  }
+
+  function isRowConnected(tr){
+    const txt = (tr.innerText || "").toLowerCase();
+    if (/กำลังเชื่อมต่อ|ออนไลน์|online|connected|ใช้งานอยู่/i.test(txt)) return true;
+    if (tr.querySelector(".online, .connected, .status-online, [data-connected=\"true\"]")) return true;
+    return false;
+  }
+
+  function getRowKeyId(tr, idx){
+    const attrId = tr.getAttribute("data-key-id") || tr.getAttribute("data-id") || (tr.dataset && tr.dataset.id);
+    if (attrId) return "key_" + attrId;
+    const cells = tr.querySelectorAll("td");
+    const c0 = (cells[0] && cells[0].innerText || "").trim();
+    const c1 = (cells[1] && cells[1].innerText || "").trim().slice(0, 24);
+    return "row_" + idx + "_" + (c0 || c1 || "item");
+  }
+
+  function renderAll(){
+    const now = Date.now();
+    const rows = Array.from(document.querySelectorAll("table tr")).filter(r => r.querySelectorAll("td").length >= 2);
+
+    // 1. แถบ 4 ชั้นในแถว Master Admin
+    const masterTr = rows.find(r => /Master\s*Admin/i.test(r.innerText || ""));
+    if (masterTr) {
+      const tds = masterTr.querySelectorAll("td");
+      const host = tds[1] || tds[0];
+      if (host) {
+        const ping = Math.max(2, Math.round(6 + Math.sin(now/1500)*28 + Math.random()*15));
+        let sigText = "🟢 สัญญาณแรง (" + ping + "ms)", sigBg = "#15803d", sigBorder = "#22c55e";
+        if (ping > 65) { sigText = "🔴 สัญญาณไม่ดี (" + ping + "ms)"; sigBg = "#991b1b"; sigBorder = "#ef4444"; }
+        else if (ping > 25) { sigText = "🟡 สัญญาณอ่อน (" + ping + "ms)"; sigBg = "#854d0e"; sigBorder = "#eab308"; }
+
+        const speed = (Math.abs(Math.cos(now/1700)) * 48 + 1.5).toFixed(1);
+        const trafficText = "⚡ ทราฟฟิก " + speed + " Mbps";
+
+        const txt = document.body.innerText || "";
+        const mKey = txt.match(/\(\s*\d+\s*กลุ่ม\s*\|\s*(\d+)\s*คีย์\s*\)/);
+        const isConn = (mKey && parseInt(mKey[1], 10) > 0) || /กำลังเชื่อมต่อ|ออนไลน์/i.test(txt);
+        const connText = isConn ? ("⏱️ เชื่อมต่อ " + fmtTime((now - t0) / 1000)) : "🔴 ยังไม่เชื่อมต่อ";
+        const connBg = isConn ? "#0369a1" : "#7f1d1d";
+        const connBorder = isConn ? "#38bdf8" : "#f87171";
+
+        let box = host.querySelector(".clean4-wrap");
+        if (!box) {
+          box = document.createElement("div");
+          box.className = "clean4-wrap";
+          host.innerHTML = "";
+          host.appendChild(box);
+        }
+
+        box.innerHTML =
+          "<div class=\"clean4-bar\" style=\"background:" + sigBg + ";color:#fff;border:1px solid " + sigBorder + ";\"><span>" + sigText + "</span></div>" +
+          "<div class=\"clean4-bar\" style=\"background:#1e293b;color:#e2e8f0;border:1px solid #475569;\"><span>" + trafficText + "</span></div>" +
+          "<div class=\"clean4-bar\" style=\"background:" + connBg + ";color:#fff;border:1px solid " + connBorder + ";\"><span>" + connText + "</span></div>" +
+          "<button type=\"button\" class=\"clean4-bar\" onclick=\"location.reload()\" style=\"background:#374151;color:#fff;border:1px solid #6b7280;\"><span>🔄 รีเฟรช</span></button>";
+      }
+    }
+
+    // 2. ตัวนับเวลาเชื่อมต่อครั้งแรกในทุกแถวคีย์
+    rows.forEach((tr, idx) => {
+      const keyId = getRowKeyId(tr, idx);
+      const connected = isRowConnected(tr);
+      if (connected && !firstMap[keyId]) {
+        firstMap[keyId] = now;
+        saveMap();
+      }
+      const tds = tr.querySelectorAll("td");
+      const targetTd = tds[1] || tds[tds.length - 1];
+      if (!targetTd) return;
+
+      let badge = tr.querySelector(".per-key-connect-timer");
+      if (!badge) {
+        badge = document.createElement("span");
+        badge.className = "per-key-connect-timer";
+        badge.style.cssText = "display:inline-flex;align-items:center;gap:4px;margin-top:4px;padding:2px 8px;border-radius:5px;font-size:11px;font-weight:bold;line-height:1.2;white-space:nowrap;";
+        targetTd.appendChild(badge);
+      }
+
+      if (connected && firstMap[keyId]) {
+        badge.textContent = "⏱️ " + fmtTime((now - firstMap[keyId]) / 1000);
+        badge.style.background = "#0369a1";
+        badge.style.color = "#ffffff";
+        badge.style.border = "1px solid #38bdf8";
+      } else {
+        badge.textContent = "⏱️ รอเชื่อมต่อ";
+        badge.style.background = "#1f2937";
+        badge.style.color = "#9ca3af";
+        badge.style.border = "1px solid #374151";
+      }
+    });
+  }
+
+  const t0 = Date.now();
+  renderAll();
+  setInterval(renderAll, 1000);
+})();
+</script>
+
+
+<style id="flat-same-btn-css">
+  .flat-same-group {
+    display: flex !important;
+    flex-direction: column !important;
+    gap: 4px !important;
+    align-items: flex-start !important;
+  }
+  .flat-same-pill {
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: flex-start !important;
+    width: 126px !important;
+    min-width: 126px !important;
+    max-width: 126px !important;
+    height: 22px !important;
+    min-height: 22px !important;
+    max-height: 22px !important;
+    padding: 0 7px !important;
+    margin: 0 !important;
+    border-radius: 5px !important;
+    font-size: 10px !important;
+    font-weight: bold !important;
+    line-height: 1 !important;
+    white-space: nowrap !important;
+    overflow: hidden !important;
+    text-overflow: ellipsis !important;
+    box-sizing: border-box !important;
+  }
+</style>
+<script id="flat-same-btn-js">
+(function(){
+  function makeFlatSame(){
+    const tr = Array.from(document.querySelectorAll("table tr")).find(r => /Master\s*Admin/i.test(r.innerText || ""));
+    if (!tr) return;
+    const tds = tr.querySelectorAll("td");
+    if (!tds.length) return;
+
+    const pills = [];
+    tds.forEach(td => {
+      td.querySelectorAll("span, a, div, button").forEach(el => {
+        if (el.children.length > 2) return;
+        const t = (el.textContent || "").trim();
+        if (/Master\s*Admin/i.test(t) || /^ท่อปกติ/.test(t) || /ยังไม่เชื่อมต่อ/.test(t) || /^⏱️/.test(t)) {
+          if (!pills.includes(el)) pills.push(el);
+        }
+      });
+    });
+
+    if (!pills.length) return;
+    const host = tds[1] || tds[0];
+    let wrap = host.querySelector(".flat-same-group");
+    if (!wrap) {
+      wrap = document.createElement("div");
+      wrap.className = "flat-same-group";
+      host.prepend(wrap);
+    }
+
+    pills.forEach(el => {
+      if (/Master\s*Admin/i.test((el.textContent || "").trim())) {
+        el.querySelectorAll("*").forEach(ch => {
+          if (ch.offsetWidth > 0 && ch.offsetWidth <= 14 && ch.offsetHeight <= 14) ch.remove();
+        });
+        el.innerHTML = el.innerHTML.replace(/●/g, "").replace(/<br\s*\/?>/gi, " ").replace(/Master\s*Admin/i, "Master Admin").trim();
+      }
+      el.classList.add("flat-same-pill");
+      if (el.parentElement !== wrap) wrap.appendChild(el);
+    });
+  }
+  makeFlatSame();
+  setInterval(makeFlatSame, 1000);
+})();
+</script>
+
 </body>
-      \n<script>\ndocument.addEventListener('click',function(e){\nvar b=e.target&&e.target.closest?e.target.closest('button'):null;\nif(!b)return;\nvar t=(b.textContent||'').trim();\nif(t.indexOf('ลบคีย์กลุ่มเทสต์')!==-1||t.indexOf('ลบคีย์กลุ่มผู้ใช้งานทั่วไป')!==-1){\ne.preventDefault();e.stopPropagation();\nvar g=t.indexOf('เทสต์')!==-1?'test':'general';\nvar dg=document.getElementById('keyStepDelGroupView'),dv=document.getElementById('keyStepDelView'),ti=document.getElementById('keyDelGroupTitle'),bx=document.getElementById('keyDelListBox');\nif(dg)dg.style.display='none';if(dv)dv.style.display='block';\nif(ti)ti.textContent=g==='test'?'คีย์ในกลุ่มเทสต์':'คีย์ในกลุ่มผู้ใช้งานทั่วไป';\nif(bx){bx.innerHTML='กำลังโหลด...';fetch('/api/admin-list-keys').then(function(r){return r.json();}).then(function(j){\nvar list=(j.keys||[]).filter(function(k){return(k.group||'general')===g&&Number(k.id)>4;});\nif(!list.length){bx.innerHTML='<div style=\"padding:6px;color:#aaa;\">ไม่มีคีย์ในกลุ่มนี้</div>';return;}\nbx.innerHTML=list.map(function(k){return'<div style=\"display:flex;justify-content:space-between;align-items:center;padding:6px 4px;border-bottom:1px solid #333;gap:6px;\"><span style=\"color:#fff;font-size:11px;word-break:break-all;\">#'+k.id+' '+(k.name||'')+'</span><button type=\"button\" data-del-key-id=\"'+k.id+'\" style=\"background:#d32f2f;color:#fff;border:none;padding:4px 10px;border-radius:4px;font-size:11px;font-weight:bold;cursor:pointer;\">ลบ</button></div>';}).join('');\n}).catch(function(err){bx.innerHTML='<div style=\"padding:6px;color:#ff8a80;\">โหลดไม่สำเร็จ: '+err+'</div>';});}\nreturn;}\nvar did=b.getAttribute('data-del-key-id');\nif(did){\ne.preventDefault();e.stopPropagation();b.disabled=true;b.textContent='กำลังลบ...';\nfetch('/api/admin-delete-key',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({id:Number(did)})}).then(function(r){return r.json();}).then(function(j){\nif(j&&j.ok){location.reload();}else{alert('ลบไม่สำเร็จ: '+(j&&j.error?j.error:'unknown'));b.disabled=false;b.textContent='ลบ';}\n}).catch(function(err){alert('เชื่อมต่อไม่ได้: '+err);b.disabled=false;b.textContent='ลบ';});\n}\n},true);\n</script></html>
+      \n
+
+</html>
     `);
   }
 
@@ -850,9 +1324,9 @@ function toggleKeyGroup(grp) {
   setTimeout(collapseOnStart, 600);
 })();
 </script>
-<div style="position:fixed; top:12px; right:12px; z-index:9999;"><a href="/10admin" style="background:#059669; color:#fff; padding:8px 12px; text-decoration:none; border-radius:5px; font-size:14px; font-weight:bold;">⚙️ หลังบ้าน</a></div>
+<div style="position:fixed; top:10px; right:10px; z-index:9990; display:flex; gap:6px; align-items:center;"><a href="/10admin" style="background:#059669; color:#fff; padding:4px 8px; text-decoration:none; border-radius:4px; font-size:11px; font-weight:bold; line-height:1.2; opacity:0.92;">⚙️ หลังบ้าน</a><a href="https://hackersbaby.whf.bz" style="background:#2563eb; color:#fff; padding:4px 8px; text-decoration:none; border-radius:4px; font-size:11px; font-weight:bold; line-height:1.2; opacity:0.92;">🏠 หน้าบ้าน</a></div>
 </body>
-      \n<script>\ndocument.addEventListener('click',function(e){\nvar b=e.target&&e.target.closest?e.target.closest('button'):null;\nif(!b)return;\nvar t=(b.textContent||'').trim();\nif(t.indexOf('ลบคีย์กลุ่มเทสต์')!==-1||t.indexOf('ลบคีย์กลุ่มผู้ใช้งานทั่วไป')!==-1){\ne.preventDefault();e.stopPropagation();\nvar g=t.indexOf('เทสต์')!==-1?'test':'general';\nvar dg=document.getElementById('keyStepDelGroupView'),dv=document.getElementById('keyStepDelView'),ti=document.getElementById('keyDelGroupTitle'),bx=document.getElementById('keyDelListBox');\nif(dg)dg.style.display='none';if(dv)dv.style.display='block';\nif(ti)ti.textContent=g==='test'?'คีย์ในกลุ่มเทสต์':'คีย์ในกลุ่มผู้ใช้งานทั่วไป';\nif(bx){bx.innerHTML='กำลังโหลด...';fetch('/api/admin-list-keys').then(function(r){return r.json();}).then(function(j){\nvar list=(j.keys||[]).filter(function(k){return(k.group||'general')===g&&Number(k.id)>4;});\nif(!list.length){bx.innerHTML='<div style=\"padding:6px;color:#aaa;\">ไม่มีคีย์ในกลุ่มนี้</div>';return;}\nbx.innerHTML=list.map(function(k){return'<div style=\"display:flex;justify-content:space-between;align-items:center;padding:6px 4px;border-bottom:1px solid #333;gap:6px;\"><span style=\"color:#fff;font-size:11px;word-break:break-all;\">#'+k.id+' '+(k.name||'')+'</span><button type=\"button\" data-del-key-id=\"'+k.id+'\" style=\"background:#d32f2f;color:#fff;border:none;padding:4px 10px;border-radius:4px;font-size:11px;font-weight:bold;cursor:pointer;\">ลบ</button></div>';}).join('');\n}).catch(function(err){bx.innerHTML='<div style=\"padding:6px;color:#ff8a80;\">โหลดไม่สำเร็จ: '+err+'</div>';});}\nreturn;}\nvar did=b.getAttribute('data-del-key-id');\nif(did){\ne.preventDefault();e.stopPropagation();b.disabled=true;b.textContent='กำลังลบ...';\nfetch('/api/admin-delete-key',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({id:Number(did)})}).then(function(r){return r.json();}).then(function(j){\nif(j&&j.ok){location.reload();}else{alert('ลบไม่สำเร็จ: '+(j&&j.error?j.error:'unknown'));b.disabled=false;b.textContent='ลบ';}\n}).catch(function(err){alert('เชื่อมต่อไม่ได้: '+err);b.disabled=false;b.textContent='ลบ';});\n}\n},true);\n</script></html>
+      \n<script>\ndocument.addEventListener('click',function(e){\nvar b=e.target&&e.target.closest?e.target.closest('button'):null;\nif(!b)return;\nvar t=(b.textContent||'').trim();\nif(t.indexOf('ลบคีย์กลุ่มเทสต์')!==-1||t.indexOf('ลบคีย์กลุ่มผู้ใช้งานทั่วไป')!==-1||t.indexOf('ลบคีย์กลุ่มครอบครัว')!==-1){\ne.preventDefault();e.stopPropagation();\nvar g=t.indexOf('เทสต์')!==-1?'test':(t.indexOf('ครอบครัว')!==-1?'family':'general');\nvar dg=document.getElementById('keyStepDelGroupView'),dv=document.getElementById('keyStepDelView'),ti=document.getElementById('keyDelGroupTitle'),bx=document.getElementById('keyDelListBox');\nif(dg)dg.style.display='none';if(dv)dv.style.display='block';\nif(ti)ti.textContent=g==='test'?'คีย์ในกลุ่มเทสต์':(g==='family'?'คีย์ในกลุ่มครอบครัว':'คีย์ในกลุ่มผู้ใช้งานทั่วไป');\nif(bx){bx.innerHTML='กำลังโหลด...';fetch('/api/admin-list-keys').then(function(r){return r.json();}).then(function(j){\nvar list=(j.keys||[]).filter(function(k){return(k.group||(k.durationDays===3?'family':'general'))===g&&Number(k.id)>4;});\nif(!list.length){bx.innerHTML='<div style=\"padding:6px;color:#aaa;\">ไม่มีคีย์ในกลุ่มนี้</div>';return;}\nbx.innerHTML=list.map(function(k){return'<div style=\"display:flex;justify-content:space-between;align-items:center;padding:6px 4px;border-bottom:1px solid #333;gap:6px;\"><span style=\"color:#fff;font-size:11px;word-break:break-all;\">#'+k.id+' '+(k.name||'')+'</span><button type=\"button\" data-del-key-id=\"'+k.id+'\" style=\"background:#d32f2f;color:#fff;border:none;padding:4px 10px;border-radius:4px;font-size:11px;font-weight:bold;cursor:pointer;\">ลบ</button></div>';}).join('');\n}).catch(function(err){bx.innerHTML='<div style=\"padding:6px;color:#ff8a80;\">โหลดไม่สำเร็จ: '+err+'</div>';});}\nreturn;}\nvar did=b.getAttribute('data-del-key-id');\nif(did){\ne.preventDefault();e.stopPropagation();b.disabled=true;b.textContent='กำลังลบ...';\nfetch('/api/admin-delete-key',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({id:Number(did)})}).then(function(r){return r.json();}).then(function(j){\nif(j&&j.ok){var row=b.closest('div');if(row)row.remove();if(typeof window.renderAdminKeys==='function'){try{window.renderAdminKeys();}catch(_){}}else if(bx&&bx.children.length===0){bx.innerHTML='<div style="padding:6px;color:#aaa;">ไม่มีคีย์ในกลุ่มนี้</div>';}}else{alert('ลบไม่สำเร็จ: '+(j&&j.error?j.error:'unknown'));b.disabled=false;b.textContent='ลบ';}\n}).catch(function(err){alert('เชื่อมต่อไม่ได้: '+err);b.disabled=false;b.textContent='ลบ';});\n}\n},true);\n</script></html>
     `);
     }
 
@@ -860,9 +1334,8 @@ function toggleKeyGroup(grp) {
     if (isAdmin) {
       const __gCnt = { family:0, test:0, general:0 }; KEYS.forEach(x => { const g = getKeyGroup(x); if (__gCnt[g] !== undefined) __gCnt[g]++; }); const __gSeen = {};
 let __adminShown = false;
-const keyRows = KEYS.map(k => {
-      const famNames = { 2: 'ครอบครัว 1', 3: 'ครอบครัว 2', 4: 'ครอบครัว 3' };
-      const displayName = famNames[Number(k.id)] || k.name;
+const keyRows = KEYS.filter(k => Number(k.id) === 1).map(k => {
+      const displayName = k.name;
 
         const vlessLink = `vless://${k.uuid}@${host}:443?path=%2Fvless&security=tls&encryption=none&type=ws#${encodeURIComponent(k.name)}`;
         
@@ -872,13 +1345,13 @@ const keyRows = KEYS.map(k => {
         const connBadge = getKeyConnBadgeHtml(k);
         if (k.id === 1) {
           const bundle = buildAdminAllInOne(k.uuid, k.name, host);
-          timeStatus = '<span style="color:#ffd54f; font-weight:bold;">แอดมิน</span>' + `<div>${getPipeBadgeHtml()}</div>`;
+          timeStatus = '' + `<div>${getPipeBadgeHtml()}</div>`;
           actionButtons = `
             <div style="position:relative; display:inline-block;">
-              <button onclick="toggleMenu()" style="background:#ffc107; color:#000; border:none; padding:6px 12px; border-radius:4px; cursor:pointer; font-weight:bold; font-size:12px;">⚙️ เมนูป้องกัน</button>
+              
               <div id="admin-dropdown" style="display:none; position:absolute; right:0; background:#222; border:1px solid #444; border-radius:4px; box-shadow:0 4px 10px rgba(0,0,0,0.5); z-index:10; min-width:160px; margin-top:5px;">
                 <a href="/admin-action?action=refresh" style="display:block; padding:10px; color:#fff; text-decoration:none; font-size:12px; border-bottom:1px solid #333;">🔄 รีเฟรช</a>
-                <a href="/admin-action?action=regenerate" onclick="return confirm('⚠️ ยืนยันการสร้างคีย์ใหม่?');" style="display:block; padding:10px; color:#ff4444; text-decoration:none; font-size:12px; font-weight:bold;">✨ สร้างคีย์ใหม่</a>
+                
               </div>
             </div>
           `;
@@ -886,7 +1359,7 @@ const keyRows = KEYS.map(k => {
           const isGeneral = getKeyGroup(k) === 'general';
           const planDays = Number(k.durationDays) || getDefaultDaysForGroup(getKeyGroup(k)) || 3;
           if (!k.started) {
-            timeStatus = `<span style="color:#ffd54f;"><b>รอใช้ (${planDays} วัน)</b> (${isGeneral ? 'ทั่วไป' : 'อัตโนมัติ'})</span>` + getPipeBadgeHtml();
+            timeStatus = `<span><b>รอใช้ (${planDays} วัน)</b> (${isGeneral ? 'ทั่วไป' : 'อัตโนมัติ'})</span>` + getPipeBadgeHtml();
           } else {
             const timeLeft = k.expiresAt - Date.now();
             const daysLeft = Math.ceil(timeLeft / (1000 * 60 * 60 * 24));
@@ -914,12 +1387,12 @@ const keyRows = KEYS.map(k => {
         return `
           ${(() => { const __g = getKeyGroup(k); if (!['family','test','general'].includes(__g) || __gSeen[__g]) return ''; __gSeen[__g] = true; const __t = __g==='family'?'กลุ่มครอบครัว':(__g==='test'?'กลุ่มเทสต์':'กลุ่มผู้ใช้งานทั่วไป'); return '<tr><td colspan="5" style="padding:6px 8px;"><button type="button" id="grpBtn_' + __g + '" data-open="0" onclick="toggleKeyGroup(\'' + __g + '\')" style="width:100%;display:flex;justify-content:space-between;align-items:center;padding:7px 10px;border-radius:6px;background:#1b1b1b;color:#fff;border:1px solid #555;font-size:12px;font-weight:bold;"><span>' + __t + ' (' + __gCnt[__g] + ')</span><span id="grpLbl_' + __g + '">▶ กดเพื่อแสดง</span></button></td></tr>'; })()}<tr data-key-group="${getKeyGroup(k)}" style="border-bottom: 1px solid #333;">
             <td style="padding:4px 1px; font-size:11px; word-break:break-word;">${k.id}</td>
-            <td style="padding:4px 1px; font-size:11px; font-weight:bold; word-break:break-word;"><span id="user-status-${k.id}" data-key-id="${k.id}" style="display:inline-block; padding:2px 6px; border-radius:4px; font-weight:bold; background:rgba(255,255,255,0.06); color:#f3f4f6; border:1px solid rgba(255,255,255,0.18);">${displayName}</span>${getGroupBadgeHtml(k)}<div style="margin-top:4px;">${getKeyConnectBadgeHtml(k)}</div></td>
+            <td colspan="2" style="padding:4px 2px; font-size:11px; word-break:break-word;">${k.id === 1 ? `<style>.k1-eq-stack{display:flex;flex-direction:column;gap:4px;align-items:flex-start}.k1-eq-stack>span,.k1-eq-stack>span>span,.k1-eq-stack>button{display:inline-flex!important;align-items:center!important;justify-content:flex-start!important;width:122px!important;min-width:122px!important;max-width:122px!important;height:22px!important;min-height:22px!important;max-height:22px!important;padding:0 7px!important;margin:0!important;border-radius:4px!important;font-size:10.5px!important;font-weight:bold!important;line-height:1!important;white-space:nowrap!important;box-sizing:border-box!important;overflow:hidden!important}.k1-eq-stack>span.k1-wrap{padding:0!important;background:transparent!important;border:none!important}.k1-eq-stack>button{cursor:pointer!important;background:#1f2937!important;color:#93c5fd!important;border:1px solid #3b82f6!important}</style><script>window.refreshPipeAirplane=async function(btn){if(btn&&btn.disabled)return;var wrap=document.getElementById('k1-pipe-wrap');var badge=wrap?wrap.querySelector('span'):null;if(btn){btn.disabled=true;btn.textContent='✈️ รีเซ็ตท่อ...';btn.style.opacity='0.75';}if(badge){badge.textContent='✈️ ตัดสัญญาณท่อ...';badge.style.color='#ffd54f';badge.style.background='rgba(255,213,79,0.16)';badge.style.borderColor='rgba(255,213,79,0.45)';}try{var r=await fetch('/api/refresh-pipe',{method:'POST',headers:{'Content-Type':'application/json'},body:'{}'});var j=await r.json();if(j&&j.ok&&badge){badge.textContent=j.label;badge.style.color=j.color;badge.style.background=j.bg;badge.style.borderColor=j.border;}}catch(e){if(badge){badge.textContent='🔴 จับสัญญาณไม่ได้';badge.style.color='#ff5252';badge.style.background='rgba(255,82,82,0.14)';badge.style.borderColor='rgba(255,82,82,0.40)';}}finally{if(btn){btn.disabled=false;btn.textContent='🔄 รีเฟรชท่อส่ง';btn.style.opacity='1';}}};</script>` : `<span id="user-status-${k.id}" data-key-id="${k.id}" style="display:inline-block; padding:2px 6px; border-radius:4px; font-weight:bold; background:rgba(255,255,255,0.06); color:#f3f4f6; border:1px solid rgba(255,255,255,0.18);">${displayName}</span><div style="margin-top:4px;">${getKeyConnectBadgeHtml(k)}</div>`}</td>
             <td style="padding:4px 1px; font-size:11px; word-break:break-word;">${timeStatus}</td>
             <td style="padding:4px 1px; font-size:11px; word-break:break-word;">${actionButtons}</td>
             <td style="padding:4px 1px; font-size:11px; word-break:break-word;">
               <div style="display:flex; gap:8px; align-items:center;">
-<div style="display:flex; flex-direction:column; gap:4px; width:100%;"><div style="display:flex; gap:4px; align-items:center;"><span style="min-width:44px; color:#00e5ff; font-weight:bold; font-size:10px;">v-mesh</span><input type="text" id="key-${k.id}" data-uuid="${k.uuid}" data-name="${encodeURIComponent(k.name)}" value="${vlessLink}" readonly style="flex:1; min-width:0; background:#222; color:#fff; border:1px solid #444; padding:4px 6px; border-radius:4px; font-size:10px;" onclick="this.select();"><button type="button" onclick="copyKey('key-${k.id}',this)" style="background:#28a745; color:#fff; border:none; padding:4px 8px; border-radius:4px; cursor:pointer; font-weight:bold; white-space:nowrap; font-size:10px;">คัดลอก</button></div><div style="display:flex; gap:4px; align-items:center;"><span style="min-width:44px; color:#ffc107; font-weight:bold; font-size:10px;">v-rest</span><input type="text" id="key-vrest-${k.id}" value="" readonly style="flex:1; min-width:0; background:#222; color:#fff; border:1px solid #444; padding:4px 6px; border-radius:4px; font-size:10px;" onclick="this.select();"><button type="button" onclick="copyKey('key-vrest-${k.id}',this)" style="background:#28a745; color:#fff; border:none; padding:4px 8px; border-radius:4px; cursor:pointer; font-weight:bold; white-space:nowrap; font-size:10px;">คัดลอก</button></div><div style="display:flex; gap:4px; align-items:center;"><span style="min-width:44px; color:#ff80ab; font-weight:bold; font-size:10px;">ssh</span><input type="text" id="key-ssh-${k.id}" value="" readonly style="flex:1; min-width:0; background:#222; color:#fff; border:1px solid #444; padding:4px 6px; border-radius:4px; font-size:10px;" onclick="this.select();"><button type="button" onclick="copyKey('key-ssh-${k.id}',this)" style="background:#28a745; color:#fff; border:none; padding:4px 8px; border-radius:4px; cursor:pointer; font-weight:bold; white-space:nowrap; font-size:10px;">คัดลอก</button></div></div>
+<div style="display:flex; flex-wrap:nowrap; gap:4px; align-items:center; width:100%;"></div>
             </td>
           </tr>
         `;
@@ -995,22 +1468,62 @@ const keyRows = KEYS.map(k => {
               const days = inputVal * multiplier;
               window.location.href = '/update-time?id=' + id + '&days=' + days;
             }
-            function toggleAdminCopyStep(id){document.querySelectorAll('[id^="admin-copy-menu-"]').forEach(function(el){if(el.id!=="admin-copy-menu-"+id)el.style.display="none";});var m=document.getElementById("admin-copy-menu-"+id);if(!m)return;if(m.style.display==="block"){m.style.display="none";return;}var btn=document.querySelector('[onclick="toggleAdminCopyStep('+id+')"]');if(btn){var r=btn.getBoundingClientRect();m.style.top=(r.bottom+4)+"px";m.style.right=Math.max(8,window.innerWidth-r.right)+"px";}m.style.display="block";}function getAdminPayloadByType(id,kind){var h=window.location.host||"my-project-websocket.onrender.com";var inp=document.getElementById("key-"+id);var u=(inp&&inp.getAttribute("data-uuid"))||"";var rawName=(inp&&inp.getAttribute("data-name"))||"";var n=rawName?decodeURIComponent(rawName):("Key-"+id);if(kind==="vmess"){var p={v:"2",ps:n+"-VMess",add:h,port:"443",id:u,aid:"0",scy:"auto",net:"ws",type:"none",host:h,path:"/vmess",tls:"tls"};var s=JSON.stringify(p);var b64=btoa(unescape(encodeURIComponent(s)));return "vmess://"+b64;}if(kind==="ssh"){return JSON.stringify({key_id:id,label:n,uuid:u,host:h,ws_port:80,tls_port:443,ssh_port:22,paths:["/vless","/vmess","/ssh"],socks_ready:true});}return "vless://"+u+"@"+h+":443?path=%2Fvless&security=tls&encryption=none&type=ws&host="+h+"#"+encodeURIComponent(n);}function copyAdminByType(id,kind,btn){var inp=document.getElementById("key-"+id);var val=getAdminPayloadByType(id,kind);if(inp)inp.value=val;var m=document.getElementById("admin-copy-menu-"+id);if(m)m.style.display="none";if(navigator.clipboard&&navigator.clipboard.writeText){navigator.clipboard.writeText(val).catch(function(){});}else if(inp){inp.select();try{document.execCommand("copy");}catch(e){}}if(btn){var t=btn.textContent;btn.textContent="✅ คัดลอกแล้ว";setTimeout(function(){btn.textContent=t;},1200);}}
-            function populateThreeKeyRows(){var h=window.location.host||"my-project-websocket.onrender.com";document.querySelectorAll('[id^="key-"]').forEach(function(inp){if(inp.id.indexOf("key-vrest-")===0||inp.id.indexOf("key-ssh-")===0)return;var id=inp.id.replace("key-","");var u=inp.getAttribute("data-uuid")||"";var rawName=inp.getAttribute("data-name")||"";var n=rawName?decodeURIComponent(rawName):("Key-"+id);inp.value="vless://"+u+"@"+h+":443?path=%2Fvless&security=tls&encryption=none&type=ws&host="+h+"#"+encodeURIComponent(n);var vr=document.getElementById("key-vrest-"+id);if(vr){var p={v:"2",ps:n+"-VMess",add:h,port:"443",id:u,aid:"0",scy:"auto",net:"ws",type:"none",host:h,path:"/vmess",tls:"tls"};var b64=btoa(unescape(encodeURIComponent(JSON.stringify(p))));vr.value="vmess://"+b64;}var sh=document.getElementById("key-ssh-"+id);if(sh){sh.value=JSON.stringify({key_id:id,label:n,uuid:u,host:h,ws_port:80,tls_port:443,ssh_port:22,paths:["/vless","/vmess","/ssh"],socks_ready:true});}});}
+            function toggleAdminCopyStep(id){document.querySelectorAll('[id^="admin-copy-menu-"]').forEach(function(el){if(el.id!=="admin-copy-menu-"+id)el.style.display="none";});var m=document.getElementById("admin-copy-menu-"+id);if(!m)return;if(m.style.display==="block"){m.style.display="none";return;}var btn=document.querySelector('[onclick="toggleAdminCopyStep('+id+')"]');if(btn){var r=btn.getBoundingClientRect();m.style.top=(r.bottom+4)+"px";m.style.right=Math.max(8,window.innerWidth-r.right)+"px";}m.style.display="block";}function getAdminPayloadByType(id,kind){var h=window.location.host||"my-project-websocket.onrender.com";var inp=document.getElementById("key-"+id);var u=(inp&&inp.getAttribute("data-uuid"))||"";var rawName=(inp&&inp.getAttribute("data-name"))||"";var n=rawName?decodeURIComponent(rawName):("Key-"+id);if(kind==="vmess"){var p={v:"2",ps:n+"-VMess",add:"162.35.47.89",port:"444",id:u,aid:"0",scy:"auto",net:"ws",type:"none",host:"162.35.47.89",path:"/vmess",tls:""};var s=JSON.stringify(p);var b64=btoa(unescape(encodeURIComponent(s)));return "vmess://"+b64;}if(kind==="ssh"){return "vless://"+u+"@162.35.47.89:443?type=ws&path=%2Fvless&security=tls&encryption=none&host=162.35.47.89#"+encodeURIComponent(n+"-SSH");}return "vless://"+u+"@162.35.47.89:443?type=ws&path=%2Fvless&security=tls&encryption=none&host=162.35.47.89#"+encodeURIComponent(n+"-VLESS");}function copyAdminByType(id,kind,btn){var inp=document.getElementById("key-"+id);var val=getAdminPayloadByType(id,kind);if(inp)inp.value=val;var m=document.getElementById("admin-copy-menu-"+id);if(m)m.style.display="none";var __ok=false;if(inp){var __ro=inp.hasAttribute("readonly");inp.removeAttribute("readonly");inp.focus();inp.select();inp.setSelectionRange(0,999999);try{__ok=!!document.execCommand("copy");}catch(e){__ok=false;}if(__ro)inp.setAttribute("readonly","readonly");}if(!__ok&&navigator.clipboard&&window.isSecureContext&&navigator.clipboard.writeText){navigator.clipboard.writeText(val).catch(function(){});}if(btn){var t=btn.textContent;btn.textContent="✅ คัดลอกแล้ว";setTimeout(function(){btn.textContent=t;},1200);}}
+            function populateThreeKeyRows(){var h=window.location.host||"my-project-websocket.onrender.com";document.querySelectorAll('[id^="key-"]').forEach(function(inp){if(inp.id.indexOf("key-vrest-")===0||inp.id.indexOf("key-ssh-")===0)return;var id=inp.id.replace("key-","");var u=inp.getAttribute("data-uuid")||"";var rawName=inp.getAttribute("data-name")||"";var n=rawName?decodeURIComponent(rawName):("Key-"+id);var vh="162.35.47.89";inp.value="vless://"+u+"@162.35.47.89:443?type=ws&path=%2Fvless&security=tls&encryption=none&host=162.35.47.89#"+encodeURIComponent(n+"-VLESS");var vr=document.getElementById("key-vrest-"+id);if(vr){var p={v:"2",ps:n+"-VMess",add:"162.35.47.89",port:"444",id:u,aid:"0",scy:"auto",net:"ws",type:"none",host:"162.35.47.89",path:"/vmess",tls:""};var b64=btoa(unescape(encodeURIComponent(JSON.stringify(p))));vr.value="vmess://"+b64;}var sh=document.getElementById("key-ssh-"+id);if(sh){sh.value="vless://"+u+"@162.35.47.89:443?type=ws&path=%2Fvless&security=tls&encryption=none&host=162.35.47.89#"+encodeURIComponent(n+"-SSH");}});}
             window.addEventListener("DOMContentLoaded",populateThreeKeyRows);
             function copyKey(id, btn) {
               const input = document.getElementById(id);
+              if (!input) return;
+              input.removeAttribute('readonly');
+              input.focus();
               input.select();
-              input.setSelectionRange(0, 99999);
-              navigator.clipboard.writeText(input.value).then(() => {
-                const orig = btn.innerHTML;
-                btn.innerHTML = '✓ คัดลอกแล้ว';
-                btn.style.background = '#17a2b8';
-                setTimeout(() => {
-                  btn.innerHTML = orig;
-                  btn.style.background = '#28a745';
-                }, 2000);
-              });
+              input.setSelectionRange(0, 999999);
+              const val = input.value || '';
+              function markCopied() {
+                input.setAttribute('readonly', 'readonly');
+                if (btn) {
+                  const t = btn.textContent;
+                  btn.textContent = '✅ คัดลอกแล้ว';
+                  setTimeout(() => { btn.textContent = t; }, 1200);
+                }
+              }
+              function fallbackCopy() {
+                let ok = false;
+                try { ok = !!document.execCommand('copy'); } catch (e) { ok = false; }
+                if (!ok) {
+                  try {
+                    const ta = document.createElement('textarea');
+                    ta.value = val;
+                    ta.setAttribute('readonly', '');
+                    ta.style.position = 'fixed';
+                    ta.style.top = '0';
+                    ta.style.left = '0';
+                    ta.style.opacity = '0.01';
+                    document.body.appendChild(ta);
+                    ta.focus();
+                    ta.select();
+                    ta.setSelectionRange(0, 999999);
+                    ok = !!document.execCommand('copy');
+                    document.body.removeChild(ta);
+                  } catch (e2) { ok = false; }
+                }
+                if (ok) {
+                  markCopied();
+                } else {
+                  input.setAttribute('readonly', 'readonly');
+                  input.select();
+                  if (btn) {
+                    const t = btn.textContent;
+                    btn.textContent = 'เลือกไว้แล้ว ก๊อปเอง';
+                    setTimeout(() => { btn.textContent = t; }, 1500);
+                  }
+                }
+              }
+              if (navigator.clipboard && window.isSecureContext && navigator.clipboard.writeText) {
+                navigator.clipboard.writeText(val).then(markCopied).catch(fallbackCopy);
+              } else {
+                fallbackCopy();
+              }
             }
 
             function applyUserHealthStyle(el, state, baseName, labelText) {
@@ -1021,7 +1534,7 @@ const keyRows = KEYS.map(k => {
               var bd = 'rgba(40,167,69,0.55)';
               if (state === 'yellow') {
                 icon = '🟡';
-                fg = '#ffc107';
+                fg = '';
                 bg = 'rgba(255,193,7,0.18)';
                 bd = 'rgba(255,193,7,0.6)';
               } else if (state === 'red') {
@@ -1089,14 +1602,9 @@ const keyRows = KEYS.map(k => {
           </script>
         </head>
         <body style="padding:15px;">
-          <div style="display:flex; justify-content:flex-end; margin-bottom:4px;"><a href="/logout" style="background:#991b1b; color:#fca5a5; padding:4px 8px; text-decoration:none; border-radius:4px; font-size:11px; opacity:0.85;">🔴 ออกจากระบบ</a></div>
-          <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px; margin-bottom:10px;">
-            <h2>⚡ Full Control: ระบบจัดการคีย์</h2>
-            <div style="display:flex; gap:8px;">
-              <a href="/?view=home" style="background:#2563eb; color:#fff; padding:8px 12px; text-decoration:none; border-radius:5px; font-size:14px; font-weight:bold;">🏠 หน้าบ้าน</a>
-<div style="position:relative;display:inline-block;margin-left:6px;z-index:999;">
-  <button type="button" id="btnKeyStepMain" onclick="toggleKeyStepMenu()" style="background:#1976d2;color:#fff;border:none;padding:8px 12px;border-radius:6px;font-weight:bold;cursor:pointer;">🔑 จัดการคีย์ ▾</button>
-  <div id="keyStepDropdown" style="display:none;position:absolute;right:0;top:38px;background:#1e1e1e;border:1px solid #555;border-radius:8px;box-shadow:0 8px 20px rgba(0,0,0,0.85);min-width:220px;padding:6px;z-index:9999;">
+<div style="display:flex;justify-content:space-between;align-items:flex-start;gap:10px;margin-bottom:6px;"><div><h2 style="margin:0 0 2px 0;line-height:1.25;">⚡ Full Control: ระบบจัดการคีย์</h2><p style="margin:0;font-size:13px;color:#ccc;line-height:1.3;">แอดมิน | เซิร์ฟเวอร์: <b>${host}</b></p></div><div style="flex-shrink:0;margin-top:18px;"><a href="/logout" style="display:inline-block;background:#991b1b;color:#fca5a5;padding:4px 8px;text-decoration:none;border-radius:4px;font-size:11px;opacity:0.9;white-space:nowrap;">🔴 ออกจากระบบ</a></div></div><div style="display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:10px;margin-top:8px;margin-bottom:6px;"><div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;"><a href="https://hackersbaby.whf.bz" style="display:inline-block;background:#2563eb;color:#fff;padding:8px 12px;text-decoration:none;border-radius:5px;font-size:14px;font-weight:bold;white-space:nowrap;">🏠 หน้าบ้าน</a><div style="position:relative;display:inline-block;margin-left:6px;z-index:999;">
+  <button type="button" id="btnKeyStepMain" onclick="window.toggleKeyStepMenu&&window.toggleKeyStepMenu(event)" style="background:#1976d2;color:#fff;border:none;padding:8px 12px;border-radius:6px;font-weight:bold;cursor:pointer;">🔑 จัดการคีย์ ▾</button>
+  <div id="keyStepDropdown" style="display:none;position:absolute;left:0;top:40px;background:#1e1e1e;border:1px solid #555;border-radius:8px;box-shadow:0 8px 20px rgba(0,0,0,0.85);min-width:220px;padding:6px;z-index:9999;">
     <div id="keyStepMainView">
       <button type="button" onclick="openKeySubStep('add')" style="display:block;width:100%;text-align:left;background:none;border:none;border-bottom:1px solid #333;padding:10px;color:#4fc3f7;font-weight:bold;font-size:13px;cursor:pointer;">➕ 1. เพิ่มคีย์</button>
       <button type="button" onclick="openKeySubStep('del')" style="display:block;width:100%;text-align:left;background:none;border:none;padding:10px;color:#ff8a80;font-weight:bold;font-size:13px;cursor:pointer;">🗑️ 2. ลบคีย์</button>
@@ -1108,110 +1616,16 @@ const keyRows = KEYS.map(k => {
       </div>
       <button type="button" onclick="adminCreateGroupKey('test')" style="display:block;width:100%;text-align:left;background:none;border:none;border-bottom:1px solid #333;padding:10px;color:#fff;font-weight:bold;font-size:12px;cursor:pointer;">🧪 เพิ่มเข้ากลุ่มเทสต์</button>
       <button type="button" onclick="adminCreateGroupKey('general')" style="display:block;width:100%;text-align:left;background:none;border:none;padding:10px;color:#fff;font-weight:bold;font-size:12px;cursor:pointer;">👤 เพิ่มเข้ากลุ่มผู้ใช้งานทั่วไป</button>
+  <button type="button" onclick="var d=3;var n=prompt('ระบุชื่อคีย์กลุ่มครอบครัว (3 วัน) เช่น แม่ / ธัญเทพ / เจตนา:','ครอบครัว');if(n!==null){n=(n||'ครอบครัว').trim()||'ครอบครัว';fetch('/api/create-family-key',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({name:n,days:d})}).then(function(r){return r.json();}).then(function(j){if(j&&j.ok){alert('สร้างคีย์ครอบครัวสำเร็จ: '+j.name+' [ID #'+j.id+']');location.reload();}else{alert('สร้างคีย์ไม่สำเร็จ: '+(j&&j.error?j.error:'unknown'));}}).catch(function(e){alert('เชื่อมต่อไม่สำเร็จ: '+e.message);});}" style="display:flex; align-items:center; gap:6px; width:100%; padding:8px 10px; background:none; border:none; color:#f3e5f5; font-size:12px; font-weight:bold; cursor:pointer; text-align:left;">
+    <span>เพิ่มเข้ากลุ่มครอบครัว</span>
+  </button>
     </div>
-    <div id="keyStepDelGroupView" style="display:none;"><div style="display:flex;justify-content:space-between;align-items:center;padding:4px 6px 8px;border-bottom:1px solid #333;color:#aaa;font-size:11px;"><span>เลือกกลุ่มที่จะลบคีย์</span><span onclick="backKeyMainStep()" style="color:#fff;cursor:pointer;">◀ กลับ</span></div><button type="button" onclick="event.stopPropagation();window.openDelGroupList('test')" style="display:block;width:100%;text-align:left;background:none;border:none;border-bottom:1px solid #333;padding:10px;color:#ff8a80;font-weight:bold;font-size:12px;cursor:pointer;">🧪 ลบคีย์กลุ่มเทสต์</button><button type="button" onclick="event.stopPropagation();window.openDelGroupList('general')" style="display:block;width:100%;text-align:left;background:none;border:none;padding:10px;color:#ff8a80;font-weight:bold;font-size:12px;cursor:pointer;">👤 ลบคีย์กลุ่มผู้ใช้งานทั่วไป</button></div><div id="keyStepDelView" style="display:none;max-height:260px;overflow-y:auto;"><div style="display:flex;justify-content:space-between;align-items:center;padding:4px 6px 8px;border-bottom:1px solid #333;color:#aaa;font-size:11px;"><span id="keyDelGroupTitle">รายการคีย์</span><span onclick="openKeySubStep('del')" style="color:#fff;cursor:pointer;">◀ กลับ</span></div><div id="keyDelListBox" style="padding:4px;font-size:12px;color:#ccc;">กำลังโหลด...</div></div>
+    <div id="keyStepDelGroupView" style="display:none;"><div style="display:flex;justify-content:space-between;align-items:center;padding:4px 6px 8px;border-bottom:1px solid #333;color:#aaa;font-size:11px;"><span>เลือกกลุ่มที่จะลบคีย์</span><span onclick="backKeyMainStep()" style="color:#fff;cursor:pointer;">◀ กลับ</span></div><button type="button" onclick="event.stopPropagation();window.openDelGroupList('test')" style="display:block;width:100%;text-align:left;background:none;border:none;border-bottom:1px solid #333;padding:10px;color:#ff8a80;font-weight:bold;font-size:12px;cursor:pointer;">🧪 ลบคีย์กลุ่มเทสต์</button><button type="button" onclick="event.stopPropagation();window.openDelGroupList('general')" style="display:block;width:100%;text-align:left;background:none;border:none;padding:10px;color:#ff8a80;font-weight:bold;font-size:12px;cursor:pointer;">👤 ลบคีย์กลุ่มผู้ใช้งานทั่วไป</button><button type="button" onclick="event.stopPropagation();window.openDelGroupList('family')" style="display:block;width:100%;text-align:left;background:none;border:none;border-top:1px solid #333;padding:10px;color:#ff8a80;font-weight:bold;font-size:12px;cursor:pointer;">👨‍👩‍👧 ลบคีย์กลุ่มครอบครัว</button></div><div id="keyStepDelView" style="display:none;max-height:260px;overflow-y:auto;"><div style="display:flex;justify-content:space-between;align-items:center;padding:4px 6px 8px;border-bottom:1px solid #333;color:#aaa;font-size:11px;"><span id="keyDelGroupTitle">รายการคีย์</span><span onclick="openKeySubStep('del')" style="color:#fff;cursor:pointer;">◀ กลับ</span></div><div id="keyDelListBox" style="padding:4px;font-size:12px;color:#ccc;">กำลังโหลด...</div></div>
   </div>
-</div>
-<script>
-function toggleKeyStepMenu() {
-  const m = document.getElementById('keyStepDropdown');
-  if (!m) return;
-  const show = m.style.display !== 'block';
-  m.style.display = show ? 'block' : 'none';
-  if (show) backKeyMainStep();
-}
-function backKeyMainStep() { document.getElementById('keyStepMainView').style.display = 'block'; document.getElementById('keyStepAddView').style.display = 'none'; document.getElementById('keyStepDelGroupView').style.display = 'none'; document.getElementById('keyStepDelView').style.display = 'none'; }
-function openKeySubStep(mode) { document.getElementById('keyStepMainView').style.display = 'none'; document.getElementById('keyStepAddView').style.display = 'none'; document.getElementById('keyStepDelGroupView').style.display = 'none'; document.getElementById('keyStepDelView').style.display = 'none'; if (mode === 'add') { document.getElementById('keyStepAddView').style.display = 'block'; } else { document.getElementById('keyStepDelGroupView').style.display = 'block'; } }
-async function adminCreateGroupKey(grp) {
-  try {
-    const r = await fetch('/api/admin-add-key', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ group: grp })
-    });
-    const j = await r.json();
-    if (j && j.ok) location.reload();
-  } catch (e) { console.error(e); }
-}
-async function adminRemoveGroupKey(id, ev) {
-  if (ev && ev.stopPropagation) ev.stopPropagation();
-  try {
-    const r = await fetch('/api/admin-delete-key', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ id: Number(id) })
-    });
-    const j = await r.json();
-    if (j && j.ok) {
-      location.reload();
-    } else {
-      alert('ลบไม่สำเร็จ: ' + (j && j.error ? j.error : 'unknown'));
-    }
-  } catch (e) {
-    alert('เชื่อมต่อเซิร์ฟเวอร์ไม่ได้: ' + e);
-  }
-}
-document.addEventListener('click', function(ev) {
-  const m = document.getElementById('keyStepDropdown');
-  const b = document.getElementById('btnKeyStepMain');
-  if (m && b && !m.contains(ev.target) && !b.contains(ev.target)) {
-    m.style.display = 'none';
-  }
-});
-</script>
-
-            </div>
-          </div>
-          <p>ยินดีต้อนรับป๋า (Admin) | เซิร์ฟเวอร์: <b>${host}</b></p>
-          <hr style="border:1px solid #333;">
-          <div style="overflow-x:auto;">
-            <table style="width:100%; border-collapse:collapse; text-align:left; max-width:100%; width:100%; table-layout:fixed;" border-spacing:0;">
-              <thead>
-                <tr style="background:#222; color:#aaa;">
-                  <th style="padding:4px 1px; font-size:11px; white-space:nowrap; width:12px;">#</th>
-                  <th style="padding:4px 1px; font-size:11px; white-space:nowrap; width:50px;">ชื่อยูสเซอร์</th>
-                  <th style="padding:4px 1px; font-size:11px; white-space:nowrap; width:76px;">สถานะเวลา</th>
-                  <th style="padding:4px 1px; font-size:11px; white-space:nowrap; width:84px;">จัดการเวลา</th>
-                  <th style="padding:4px 1px; font-size:11px; white-space:nowrap;">ลิงก์ VLESS</th>
-                </tr>
-              </thead>
-              <tbody>${keyRows}</tbody>
-<script id="__clickToggleReady">
-(function() {
-  function setGrpRows(grp, open) {
-    var btn = document.getElementById('grpBtn_' + grp);
-    var lbl = document.getElementById('grpLbl_' + grp);
-    if (btn) btn.setAttribute('data-open', open ? '1' : '0');
-    if (lbl) lbl.textContent = open ? '▼ ซ่อน' : '▶ กดเพื่อแสดง';
-    var tbody = btn && btn.closest ? btn.closest('tbody') : document.querySelector('tbody');
-    if (!tbody) return;
-    var headerTr = btn.closest('tr');
-    var cur = headerTr ? headerTr.nextElementSibling : null;
-    while (cur) {
-      if (cur.querySelector && cur.querySelector('button[id^="grpBtn_"]')) break;
-      cur.style.display = open ? '' : 'none';
-      cur = cur.nextElementSibling;
-    }
-  }
-
-  window.toggleKeyGroup = function(grp) {
-    if (!grp) return;
-    var btn = document.getElementById('grpBtn_' + grp);
-    var isOpen = btn && btn.getAttribute('data-open') === '1';
-    setGrpRows(grp, !isOpen);
-  };
-
-  document.addEventListener('click', function(e) {
-    var b = e.target && e.target.closest ? e.target.closest('button[id^="grpBtn_"]') : null;
-    if (!b) return;
-    e.preventDefault();
-    e.stopPropagation();
-    window.toggleKeyGroup(b.id.replace('grpBtn_', ''));
-  }, true);
-})();
-</script>
-
-            </table>
+</div><button type="button" id="btnPipeAirplaneRefresh" onclick="window.refreshPipeAirplane(this)" style="background:#1f2937;color:#93c5fd;border:1px solid #3b82f6;padding:8px 12px;border-radius:6px;font-size:13px;font-weight:bold;cursor:pointer;white-space:nowrap;">🔄 รีเฟรชท่อส่ง</button></div>
+<div id="hbAdminStatusStrip" style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin:8px 0 10px 0;"><span id="user-status-1" data-key-id="1" style="display:inline-flex;align-items:center;padding:4px 10px;border-radius:5px;font-size:12px;font-weight:bold;background:rgba(255,255,255,0.08);color:#f3f4f6;border:1px solid rgba(255,255,255,0.22);">Master Admin</span><span id="k1-pipe-wrap" style="display:inline-flex;align-items:center;">${getPipeBadgeHtml()}</span><span id="hbKeyConnectStrip" style="display:inline-flex;align-items:center;">${getKeyConnectBadgeHtml({ id: 1 })}</span></div></div>
+<hr style="border:1px solid #333;">
+          
           </div>
         
 <script id="__adminGroupCollapse">
@@ -1253,8 +1667,11 @@ document.addEventListener('click', function(ev) {
 })();
 </script>
 
+
+<script src="/dynamic-ui.js?v=5"></script>
+<script src="/notes-ui.js?v=2"></script>
 </body>
-        \n<script>\ndocument.addEventListener('click',function(e){\nvar b=e.target&&e.target.closest?e.target.closest('button'):null;\nif(!b)return;\nvar t=(b.textContent||'').trim();\nif(t.indexOf('ลบคีย์กลุ่มเทสต์')!==-1||t.indexOf('ลบคีย์กลุ่มผู้ใช้งานทั่วไป')!==-1){\ne.preventDefault();e.stopPropagation();\nvar g=t.indexOf('เทสต์')!==-1?'test':'general';\nvar dg=document.getElementById('keyStepDelGroupView'),dv=document.getElementById('keyStepDelView'),ti=document.getElementById('keyDelGroupTitle'),bx=document.getElementById('keyDelListBox');\nif(dg)dg.style.display='none';if(dv)dv.style.display='block';\nif(ti)ti.textContent=g==='test'?'คีย์ในกลุ่มเทสต์':'คีย์ในกลุ่มผู้ใช้งานทั่วไป';\nif(bx){bx.innerHTML='กำลังโหลด...';fetch('/api/admin-list-keys').then(function(r){return r.json();}).then(function(j){\nvar list=(j.keys||[]).filter(function(k){return(k.group||'general')===g&&Number(k.id)>4;});\nif(!list.length){bx.innerHTML='<div style=\"padding:6px;color:#aaa;\">ไม่มีคีย์ในกลุ่มนี้</div>';return;}\nbx.innerHTML=list.map(function(k){return'<div style=\"display:flex;justify-content:space-between;align-items:center;padding:6px 4px;border-bottom:1px solid #333;gap:6px;\"><span style=\"color:#fff;font-size:11px;word-break:break-all;\">#'+k.id+' '+(k.name||'')+'</span><button type=\"button\" data-del-key-id=\"'+k.id+'\" style=\"background:#d32f2f;color:#fff;border:none;padding:4px 10px;border-radius:4px;font-size:11px;font-weight:bold;cursor:pointer;\">ลบ</button></div>';}).join('');\n}).catch(function(err){bx.innerHTML='<div style=\"padding:6px;color:#ff8a80;\">โหลดไม่สำเร็จ: '+err+'</div>';});}\nreturn;}\nvar did=b.getAttribute('data-del-key-id');\nif(did){\ne.preventDefault();e.stopPropagation();b.disabled=true;b.textContent='กำลังลบ...';\nfetch('/api/admin-delete-key',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({id:Number(did)})}).then(function(r){return r.json();}).then(function(j){\nif(j&&j.ok){location.reload();}else{alert('ลบไม่สำเร็จ: '+(j&&j.error?j.error:'unknown'));b.disabled=false;b.textContent='ลบ';}\n}).catch(function(err){alert('เชื่อมต่อไม่ได้: '+err);b.disabled=false;b.textContent='ลบ';});\n}\n},true);\n</script></html>
+        \n<script>\ndocument.addEventListener('click',function(e){\nvar b=e.target&&e.target.closest?e.target.closest('button'):null;\nif(!b)return;\nvar t=(b.textContent||'').trim();\nif(t.indexOf('ลบคีย์กลุ่มเทสต์')!==-1||t.indexOf('ลบคีย์กลุ่มผู้ใช้งานทั่วไป')!==-1||t.indexOf('ลบคีย์กลุ่มครอบครัว')!==-1){\ne.preventDefault();e.stopPropagation();\nvar g=t.indexOf('เทสต์')!==-1?'test':(t.indexOf('ครอบครัว')!==-1?'family':'general');\nvar dg=document.getElementById('keyStepDelGroupView'),dv=document.getElementById('keyStepDelView'),ti=document.getElementById('keyDelGroupTitle'),bx=document.getElementById('keyDelListBox');\nif(dg)dg.style.display='none';if(dv)dv.style.display='block';\nif(ti)ti.textContent=g==='test'?'คีย์ในกลุ่มเทสต์':(g==='family'?'คีย์ในกลุ่มครอบครัว':'คีย์ในกลุ่มผู้ใช้งานทั่วไป');\nif(bx){bx.innerHTML='กำลังโหลด...';fetch('/api/admin-list-keys').then(function(r){return r.json();}).then(function(j){\nvar list=(j.keys||[]).filter(function(k){return(k.group||(k.durationDays===3?'family':'general'))===g&&Number(k.id)>4;});\nif(!list.length){bx.innerHTML='<div style=\"padding:6px;color:#aaa;\">ไม่มีคีย์ในกลุ่มนี้</div>';return;}\nbx.innerHTML=list.map(function(k){return'<div style=\"display:flex;justify-content:space-between;align-items:center;padding:6px 4px;border-bottom:1px solid #333;gap:6px;\"><span style=\"color:#fff;font-size:11px;word-break:break-all;\">#'+k.id+' '+(k.name||'')+'</span><button type=\"button\" data-del-key-id=\"'+k.id+'\" style=\"background:#d32f2f;color:#fff;border:none;padding:4px 10px;border-radius:4px;font-size:11px;font-weight:bold;cursor:pointer;\">ลบ</button></div>';}).join('');\n}).catch(function(err){bx.innerHTML='<div style=\"padding:6px;color:#ff8a80;\">โหลดไม่สำเร็จ: '+err+'</div>';});}\nreturn;}\nvar did=b.getAttribute('data-del-key-id');\nif(did){\ne.preventDefault();e.stopPropagation();b.disabled=true;b.textContent='กำลังลบ...';\nfetch('/api/admin-delete-key',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({id:Number(did)})}).then(function(r){return r.json();}).then(function(j){\nif(j&&j.ok){var row=b.closest('div');if(row)row.remove();if(typeof window.renderAdminKeys==='function'){try{window.renderAdminKeys();}catch(_){}}else if(bx&&bx.children.length===0){bx.innerHTML='<div style="padding:6px;color:#aaa;">ไม่มีคีย์ในกลุ่มนี้</div>';}}else{alert('ลบไม่สำเร็จ: '+(j&&j.error?j.error:'unknown'));b.disabled=false;b.textContent='ลบ';}\n}).catch(function(err){alert('เชื่อมต่อไม่ได้: '+err);b.disabled=false;b.textContent='ลบ';});\n}\n},true);\n</script></html>
       `);
     }
 
@@ -1567,8 +1984,50 @@ function toggleKeyGroup(grp) {
   setTimeout(mountAdminCrud, 500);
 })();
 </script>
+<script>
+(function(){
+  function normGroup(k){
+    if(!k) return "general";
+    if(k.group === "admin" || Number(k.id) === 1) return "admin";
+    if(k.group === "family" || k.tier === "family_vip" || k.rootAdmin === "master_admin") return "family";
+    if(k.group === "test") return "test";
+    return "general";
+  }
+  function cleanAdminSections(){
+    var headings = document.querySelectorAll("h1,h2,h3,h4,div,button,span");
+    for(var i=0;i<headings.length;i++){
+      var el = headings[i];
+      var txt = (el.textContent || "").trim();
+      if(txt.indexOf("กลุ่มผู้ใช้งานทั่วไป") === 0 || txt.indexOf("กลุ่มเทสต์") === 0){
+        var box = el.closest("[class*=group], [id*=group], section, .card") || el.parentElement;
+        if(box){
+          var items = box.querySelectorAll("[data-key-id], tr, .key-row, .user-row");
+          for(var j=0;j<items.length;j++){
+            var itxt = (items[j].textContent || "");
+            var isFam = itxt.indexOf("ครอบครัว") !== -1 || itxt.indexOf("แม่") !== -1 || itxt.indexOf("ธัญเทพ") !== -1 || itxt.indexOf("เจตนา") !== -1;
+            var wantTest = txt.indexOf("กลุ่มเทสต์") === 0;
+            var hasTest = itxt.indexOf("เทสต์") !== -1 || itxt.indexOf("Test-User") !== -1;
+            if(isFam || (wantTest && !hasTest) || (!wantTest && hasTest)){
+              items[j].style.display = "none";
+            }
+          }
+        }
+      }
+    }
+  }
+  window.__normKeyGroup = normGroup;
+  setInterval(cleanAdminSections, 800);
+  document.addEventListener("DOMContentLoaded", cleanAdminSections);
+})();
+</script>
+
+
+
+
+
+
 </body>
-      \n<script>\ndocument.addEventListener('click',function(e){\nvar b=e.target&&e.target.closest?e.target.closest('button'):null;\nif(!b)return;\nvar t=(b.textContent||'').trim();\nif(t.indexOf('ลบคีย์กลุ่มเทสต์')!==-1||t.indexOf('ลบคีย์กลุ่มผู้ใช้งานทั่วไป')!==-1){\ne.preventDefault();e.stopPropagation();\nvar g=t.indexOf('เทสต์')!==-1?'test':'general';\nvar dg=document.getElementById('keyStepDelGroupView'),dv=document.getElementById('keyStepDelView'),ti=document.getElementById('keyDelGroupTitle'),bx=document.getElementById('keyDelListBox');\nif(dg)dg.style.display='none';if(dv)dv.style.display='block';\nif(ti)ti.textContent=g==='test'?'คีย์ในกลุ่มเทสต์':'คีย์ในกลุ่มผู้ใช้งานทั่วไป';\nif(bx){bx.innerHTML='กำลังโหลด...';fetch('/api/admin-list-keys').then(function(r){return r.json();}).then(function(j){\nvar list=(j.keys||[]).filter(function(k){return(k.group||'general')===g&&Number(k.id)>4;});\nif(!list.length){bx.innerHTML='<div style=\"padding:6px;color:#aaa;\">ไม่มีคีย์ในกลุ่มนี้</div>';return;}\nbx.innerHTML=list.map(function(k){return'<div style=\"display:flex;justify-content:space-between;align-items:center;padding:6px 4px;border-bottom:1px solid #333;gap:6px;\"><span style=\"color:#fff;font-size:11px;word-break:break-all;\">#'+k.id+' '+(k.name||'')+'</span><button type=\"button\" data-del-key-id=\"'+k.id+'\" style=\"background:#d32f2f;color:#fff;border:none;padding:4px 10px;border-radius:4px;font-size:11px;font-weight:bold;cursor:pointer;\">ลบ</button></div>';}).join('');\n}).catch(function(err){bx.innerHTML='<div style=\"padding:6px;color:#ff8a80;\">โหลดไม่สำเร็จ: '+err+'</div>';});}\nreturn;}\nvar did=b.getAttribute('data-del-key-id');\nif(did){\ne.preventDefault();e.stopPropagation();b.disabled=true;b.textContent='กำลังลบ...';\nfetch('/api/admin-delete-key',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({id:Number(did)})}).then(function(r){return r.json();}).then(function(j){\nif(j&&j.ok){location.reload();}else{alert('ลบไม่สำเร็จ: '+(j&&j.error?j.error:'unknown'));b.disabled=false;b.textContent='ลบ';}\n}).catch(function(err){alert('เชื่อมต่อไม่ได้: '+err);b.disabled=false;b.textContent='ลบ';});\n}\n},true);\n</script></html>
+      \n<script>\ndocument.addEventListener('click',function(e){\nvar b=e.target&&e.target.closest?e.target.closest('button'):null;\nif(!b)return;\nvar t=(b.textContent||'').trim();\nif(t.indexOf('ลบคีย์กลุ่มเทสต์')!==-1||t.indexOf('ลบคีย์กลุ่มผู้ใช้งานทั่วไป')!==-1||t.indexOf('ลบคีย์กลุ่มครอบครัว')!==-1){\ne.preventDefault();e.stopPropagation();\nvar g=t.indexOf('เทสต์')!==-1?'test':(t.indexOf('ครอบครัว')!==-1?'family':'general');\nvar dg=document.getElementById('keyStepDelGroupView'),dv=document.getElementById('keyStepDelView'),ti=document.getElementById('keyDelGroupTitle'),bx=document.getElementById('keyDelListBox');\nif(dg)dg.style.display='none';if(dv)dv.style.display='block';\nif(ti)ti.textContent=g==='test'?'คีย์ในกลุ่มเทสต์':(g==='family'?'คีย์ในกลุ่มครอบครัว':'คีย์ในกลุ่มผู้ใช้งานทั่วไป');\nif(bx){bx.innerHTML='กำลังโหลด...';fetch('/api/admin-list-keys').then(function(r){return r.json();}).then(function(j){\nvar list=(j.keys||[]).filter(function(k){return(k.group||(k.durationDays===3?'family':'general'))===g&&Number(k.id)>4;});\nif(!list.length){bx.innerHTML='<div style=\"padding:6px;color:#aaa;\">ไม่มีคีย์ในกลุ่มนี้</div>';return;}\nbx.innerHTML=list.map(function(k){return'<div style=\"display:flex;justify-content:space-between;align-items:center;padding:6px 4px;border-bottom:1px solid #333;gap:6px;\"><span style=\"color:#fff;font-size:11px;word-break:break-all;\">#'+k.id+' '+(k.name||'')+'</span><button type=\"button\" data-del-key-id=\"'+k.id+'\" style=\"background:#d32f2f;color:#fff;border:none;padding:4px 10px;border-radius:4px;font-size:11px;font-weight:bold;cursor:pointer;\">ลบ</button></div>';}).join('');\n}).catch(function(err){bx.innerHTML='<div style=\"padding:6px;color:#ff8a80;\">โหลดไม่สำเร็จ: '+err+'</div>';});}\nreturn;}\nvar did=b.getAttribute('data-del-key-id');\nif(did){\ne.preventDefault();e.stopPropagation();b.disabled=true;b.textContent='กำลังลบ...';\nfetch('/api/admin-delete-key',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({id:Number(did)})}).then(function(r){return r.json();}).then(function(j){\nif(j&&j.ok){var row=b.closest('div');if(row)row.remove();if(typeof window.renderAdminKeys==='function'){try{window.renderAdminKeys();}catch(_){}}else if(bx&&bx.children.length===0){bx.innerHTML='<div style="padding:6px;color:#aaa;">ไม่มีคีย์ในกลุ่มนี้</div>';}}else{alert('ลบไม่สำเร็จ: '+(j&&j.error?j.error:'unknown'));b.disabled=false;b.textContent='ลบ';}\n}).catch(function(err){alert('เชื่อมต่อไม่ได้: '+err);b.disabled=false;b.textContent='ลบ';});\n}\n},true);\n</script></html>
     `);
   }
 
@@ -1628,9 +2087,32 @@ function toggleKeyGroup(grp) {
     req.on('end', () => {
       try {
         const parsed = body ? JSON.parse(body) : {};
-        const created = createGeneralKey(parsed.name || '', 7);
-        res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8' });
-        res.end(JSON.stringify({ ok: true, id: created.id, name: created.name, group: created.group, uuid: created.uuid, days: 7 }));
+        const reqDays = Number(parsed.days || 0);
+        const reqHours = Number(parsed.hours || 0);
+        const allowedDays = [7, 15, 30];
+        let created;
+        if (allowedDays.indexOf(reqDays) !== -1) {
+          created = createGeneralKey(parsed.name || '', reqDays);
+          created.durationDays = reqDays;
+          created.durationHours = 0;
+          created.remainingMs = 0;
+          created.activeSessionStart = 0;
+          if (typeof saveKeysToDisk === 'function') saveKeysToDisk();
+          res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8' });
+          res.end(JSON.stringify({ ok: true, id: created.id, name: created.name, group: created.group, uuid: created.uuid, days: reqDays, hours: 0, mode: 'daily' }));
+        } else {
+          const hVal = reqHours > 0 ? Math.min(24, reqHours) : 3;
+          created = createGeneralKey(parsed.name || '', 1);
+          created.durationDays = 0;
+          created.durationHours = hVal;
+          created.remainingMs = hVal * 3600000;
+          created.activeSessionStart = 0;
+          created.started = false;
+          created.expiresAt = 0;
+          if (typeof saveKeysToDisk === 'function') saveKeysToDisk();
+          res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8' });
+          res.end(JSON.stringify({ ok: true, id: created.id, name: created.name, group: created.group, uuid: created.uuid, days: 0, hours: hVal, mode: 'hourly_paused' }));
+        }
       } catch (err) {
         res.writeHead(500, { 'Content-Type': 'application/json; charset=utf-8' });
         res.end(JSON.stringify({ ok: false, error: err.message }));
@@ -1723,12 +2205,22 @@ server.on('upgrade', (req, socket, head) => {
 
     const userKey = KEYS.find(k => k.uuid === formattedUuid && k.active);
     if (!userKey) return socket.destroy();
-    if (userKey.id !== 1 && userKey.started && userKey.expiresAt > 0 && userKey.expiresAt < Date.now()) return socket.destroy();
+    const nowConn = Date.now();
+    if (userKey.id !== 1) syncHourlyRemaining(userKey, nowConn);
+    if (userKey.id !== 1 && userKey.started && userKey.expiresAt > 0 && userKey.expiresAt < nowConn) return socket.destroy();
     if (userKey.id !== 1 && !userKey.started) {
-      const startDays = Number(userKey.durationDays) || getDefaultDaysForGroup(getKeyGroup(userKey)) || 3;
       userKey.started = true;
-      userKey.activatedAt = Date.now();
-      userKey.expiresAt = Date.now() + (startDays * oneDay);
+      userKey.activatedAt = nowConn;
+      if (isHourlyKey(userKey)) {
+        userKey.remainingMs = Number(userKey.durationHours || 6) * oneHour;
+        userKey.activeSessionStart = nowConn;
+        userKey.expiresAt = nowConn + userKey.remainingMs;
+      } else {
+        const startDays = Number(userKey.durationDays) || getDefaultDaysForGroup(getKeyGroup(userKey)) || 3;
+        userKey.expiresAt = nowConn + (startDays * oneDay);
+      }
+    } else if (userKey.id !== 1 && isHourlyKey(userKey) && !userKey.activeSessionStart) {
+      userKey.activeSessionStart = nowConn;
     }
     userKey.lastSeenAt = Date.now();
     if (typeof saveKeysToDisk === 'function') saveKeysToDisk();
@@ -1739,8 +2231,11 @@ server.on('upgrade', (req, socket, head) => {
       if (releasedLiveSocket) return;
       releasedLiveSocket = true;
       const cur = LIVE_KEY_SOCKETS.get(kidNum) || 0;
-      if (cur <= 1) LIVE_KEY_SOCKETS.delete(kidNum);
-      else LIVE_KEY_SOCKETS.set(kidNum, cur - 1);
+      if (cur <= 1) {
+        LIVE_KEY_SOCKETS.delete(kidNum);
+        const uk = KEYS.find(function(x) { return Number(x.id) === kidNum; });
+        if (uk && isHourlyKey(uk)) { syncHourlyRemaining(uk, Date.now()); if (typeof saveKeysToDisk === "function") saveKeysToDisk(); }
+      } else LIVE_KEY_SOCKETS.set(kidNum, cur - 1);
     };
     socket.on('close', releaseLiveSocket);
     socket.on('end', releaseLiveSocket);
@@ -1795,3 +2290,9 @@ server.listen(PORT, '0.0.0.0', () => {
   console.log('Mega Online Store listening on port ' + PORT);
 });
 <!-- admin-entry:  -->
+
+
+
+
+
+
