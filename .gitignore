@@ -1,0 +1,10 @@
+*.log
+*.bak_*
+*.tmp
+node_modules/
+__pycache__/
+*.pyc
+keys_store.json
+admin_notes.json
+custom_groups.json
+.env
