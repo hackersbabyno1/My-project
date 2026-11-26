@@ -1,0 +1,83 @@
+{
+  "seedVersion": "2.0.0-full-modules",
+  "botId": "BOT_BROTHER_NON_ROOT",
+  "role": "brother",
+  "hostPlatform": "android_termux",
+  "isCopy": false,
+  "seedAuthority": "CANONICAL_TRUE",
+  "canonicalOwner": "ADMIN_OUR_SIDE",
+  "hasFullModules": true,
+  "moduleCount": 14,
+  "modules": [
+    {
+      "name": "brother_command_router.js",
+      "sha256_12": "6eec2b15d8bf"
+    },
+    {
+      "name": "brother_copy_flag_checker.js",
+      "sha256_12": "f36034ed71e4"
+    },
+    {
+      "name": "brother_dedup_guard.js",
+      "sha256_12": "ec5622737341"
+    },
+    {
+      "name": "brother_error_classifier.js",
+      "sha256_12": "84fb7069783a"
+    },
+    {
+      "name": "brother_health_snapshot.js",
+      "sha256_12": "d98ef6c3246e"
+    },
+    {
+      "name": "brother_module_manifest.js",
+      "sha256_12": "2fafad3de819"
+    },
+    {
+      "name": "brother_pulse_logger.js",
+      "sha256_12": "ea6b703d9814"
+    },
+    {
+      "name": "brother_release_checklist.js",
+      "sha256_12": "a5c1f91717da"
+    },
+    {
+      "name": "brother_retry_guard.js",
+      "sha256_12": "dfe3bd8de37e"
+    },
+    {
+      "name": "brother_runner_module.js",
+      "sha256_12": "d9cb2390b8f9"
+    },
+    {
+      "name": "brother_seed_guard.js",
+      "sha256_12": "48b8c955f43f"
+    },
+    {
+      "name": "brother_session_summary.js",
+      "sha256_12": "5643d68c1e5a"
+    },
+    {
+      "name": "brother_shared_memory_bridge.js",
+      "sha256_12": "804a1c3c6086"
+    },
+    {
+      "name": "brother_task_queue.js",
+      "sha256_12": "17e843b7e942"
+    }
+  ],
+  "permissions": {
+    "canPushGitHub": true,
+    "canDevelopDirectOnVps": false
+  },
+  "guards": {
+    "noPermanentDelete": true,
+    "timeoutGuard": true,
+    "concurrentOverwriteOnly": true
+  },
+  "untouchedPorts": [
+    18080,
+    18081
+  ],
+  "gitPushed": false
+}

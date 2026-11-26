@@ -1,0 +1,1 @@
+function createBrotherPulseLogger(max=100){const logs=[];let last=0;function recordPulse(ev='beat',now=Date.now(),gap=20){if(now-last<gap)return{ok:false,reason:'race_skip'};last=now;logs.push({ev,at:new Date(now).toISOString()});if(logs.length>max)logs.shift();return{ok:true,count:logs.length};}return{recordPulse};}module.exports={createBrotherPulseLogger};

@@ -1,0 +1,1 @@
+const os=require('os'),path=require('path');function inspectBrotherRunner(s='/storage/emulated/0/Dev/brother_bot_session'){const u=os.userInfo?os.userInfo():{uid:-1};return{botSide:'brother',isRoot:Number(u.uid)===0,sessionDir:path.resolve(s),untouchedPorts:[18080,18081],allowGitPush:false};}module.exports={inspectBrotherRunner};

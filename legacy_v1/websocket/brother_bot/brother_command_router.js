@@ -1,0 +1,1 @@
+function routeBrotherCommand(c=''){const s=String(c).trim();if([18080,18081].some(p=>s.includes(String(p))))return{allowed:false,reason:'protected_port'};if(/\bgit\s+push\b/i.test(s))return{allowed:false,reason:'push_blocked'};return{allowed:true,cmd:s};}module.exports={routeBrotherCommand};

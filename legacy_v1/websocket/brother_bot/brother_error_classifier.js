@@ -1,0 +1,1 @@
+function classifyBrotherError(e=''){const s=String(e).toLowerCase();if(s.includes('18080')||s.includes('18081'))return'PROTECTED_PORT';if(s.includes('timeout'))return'TIMEOUT';if(s.includes('enoent')||s.includes('path'))return'PATH_ERR';if(s.includes('git push'))return'PUSH_BLOCKED';return'GENERAL_ERR';}module.exports={classifyBrotherError};

@@ -1,0 +1,85 @@
+<style>
+  html, body {
+    padding: 4px !important;
+    margin: 0 !important;
+    box-sizing: border-box !important;
+  }
+  div {
+    max-height: fit-content !important;
+  }
+  div[style*="gradient"], 
+  div[class*="header"], 
+  div[class*="banner"] {
+    padding: 8px 5px !important;
+    min-height: auto !important;
+    height: 45px !important;
+    font-size: 13px !important;
+  }
+  h1, h2, h3, h4, p, span {
+    margin: 2px 0 !important;
+    padding: 0 !important;
+    line-height: 1.2 !important;
+  }
+  body > div > div,
+  .container > div {
+    margin-bottom: 6px !important;
+    padding: 6px !important;
+  }
+</style>
+<style>
+    body {
+        margin: 0;
+        padding: 5px;
+        box-sizing: border-box;
+    }
+    .card, .product-card {
+        margin-bottom: 8px !important;
+        padding: 6px !important;
+        border-radius: 10px;
+        max-height: none;
+    }
+    .card-header, .product-banner {
+        padding: 12px 8px !important;
+        font-size: 14px !important;
+    }
+    .product-title {
+        font-size: 13px !important;
+        margin: 4px 0 !important;
+    }
+    .price {
+        font-size: 14px !important;
+        margin: 2px 0 !important;
+    }
+    .status-badge {
+        padding: 2px 6px !important;
+        font-size: 11px !important;
+    }
+</style>
+/* ปรับสไตล์การ์ดสินค้าให้กระชับพอดีหน้าจอ */
+.card, .product-card {
+    margin-bottom: 10px !important;  /* ลดระยะห่างระหว่างการ์ด */
+    padding: 8px !important;         /* ลดพื้นที่ว่างด้านใน */
+    border-radius: 12px;
+}
+
+/* ลดความสูงของส่วนหัวการ์ด (แถบสี) ให้แคบลง */
+.card-header, .product-banner {
+    padding: 15px 10px !important;   /* ปรับความสูงหัวการ์ดให้พอดี ไม่กินพื้นที่ */
+    font-size: 16px;
+}
+
+/* กระชับขนาดตัวหนังสือและป้ายสถานะ */
+.product-title {
+    font-size: 14px !important;
+    margin: 5px 0 !important;
+}
+
+.price {
+    font-size: 16px !important;
+    margin: 2px 0 !important;
+}
+
+.status-badge {
+    padding: 3px 8px !important;
+    font-size: 12px !important;
+}

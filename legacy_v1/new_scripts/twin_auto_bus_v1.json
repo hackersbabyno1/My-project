@@ -1,0 +1,14 @@
+{
+  "updated_at_th_24h": "2026-11-21 05:45:56",
+  "admin_agent": "brother_15001",
+  "twin_target": "162.35.47.89:25003",
+  "shared_memory_path": "/data/data/com.termux/files/home/work_new/github_render_clean/memory.json",
+  "shared_memory_bytes": 1001500,
+  "last_unified": "2026-11-20 00:50:48",
+  "twin_probe": {
+    "reachable": true,
+    "endpoint": "/health",
+    "code": 200,
+    "sample": "<html><meta charset=utf-8><body style=font-family:sans-serif;background:#111;color:#eee><pre>=== [พี่น้องพัฒนาไปด้วยกัน: บอทพี่ :15001 & บอทน้อง DEBIEN_AI :2500"
+  }
+}

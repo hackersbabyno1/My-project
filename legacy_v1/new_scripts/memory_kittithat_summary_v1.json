@@ -1,0 +1,78 @@
+{
+  "checked_at_th_24h": "2026-11-20 00:43:02",
+  "policy": "never_delete_old_code_create_new_files_only",
+  "user_name": "ป๋า",
+  "birth_date": "2026-11-11",
+  "version": "unified_master_2026",
+  "last_unified": "2026-11-18 16:43:13",
+  "total_memories": 127,
+  "section_counts": {
+    "history": 60,
+    "termux_code_files": 26,
+    "termux_commands": 298,
+    "chat_history": 41,
+    "workspace_logs": 3,
+    "custom_snippets": 0,
+    "health_logs": 0
+  },
+  "latest_samples": {
+    "history": [
+      {
+        "source_file": "ai_girl_bot/app.py",
+        "code_content": "from flask import Flask, render_template, request, jsonify\nimport subprocess\nimport os\n\napp = Flask(__name__)\n\n@app.route('/')\ndef index():\n    return render_template('index.html')\n\n@app.route('/api/ai-bridge', methods=['POST'])\ndef ai_bridge():\n    data = request.json\n    user_prompt = data.get('prompt', '')\n    \n    pipeline_log = []\n    pipeline_log.append(f\"👴 [ปู่ใหญ่ Orchestrator]: รับโจทย์จากป๋า -> '{user_prompt}' กำลังกระจายงานให้ทีม...\")\n    pipeline_log.append(f\"👨‍พ่อ [Gemini Agent]: วิเคราะห์โครงสร้างและต้นตอของปัญหาสำเร็จ\")\n    pipeline_log.append(f\"👩‍แม่ [OpenAI Agent]: ตรวจสอบตรรกะคำสั่งและแนวทางแก้ไข\")\n    pipeline_log.append(f\"🧔 ลุง [Claude Agent] & 💻 พี่ใหญ่ [Copilot]: ตรวจสอบความถูกต้องของชุดโค้ด\")\n    pipeline_log.append(f\"👦 พี่ชาย [Llama Agent] & 🤖 น้องเล็ก [Custom Bot]: สรุปผลลัพธ์พร้อมใช้งาน\")\n    \n    final_output = \"\\n\".join(pipeline_log) + \"\\n\\n✨ [AI ครอบครัวรุมวิเคราะห์]: ประมวลผลตรรกะเสร็จสิ้นเรียบร้อย\"\n\n    # ระบบท่อเสียงแจ้งเตือนอัตโนมัติ (ถนอมสายตาแอดมิน)\n    try:\n        subprocess.run(\"play -n synth 0.15 sin 880 2>/dev/null\", shell=True)\n        speech_text = \"กองทัพ AI ประมวลผลโจทย์เสร็จเรียบร้อยแล้วครับป๋า\"\n        subprocess.run(f\"termux-tts-speak '{speech_text}'\", shell=True)\n    except Exception as e:\n        print(\"Audio alert error:\", e)\n\n    return jsonify({\n        \"status\": \"success\", \n        \"bridge_response\": final_output\n    })\n\n@app.route('/api/ai-control', methods=['POST'])\ndef ai_control():\n    data = request.json\n    prompt = data.get('prompt', '')\n    return jsonify({\"status\": \"success\", \"response\": f\"AI Engine processed: {prompt}\"})\n\n@app.route('/api/workspace', methods=['POST'])\ndef workspace_agent():\n    data = request.json\n    command = data.get('command', '')\n    return jsonify({\"status\": \"success\", \"response\": f\"Workspace executed: {command}\"})\n\n@app.route('/api/shell', methods=['POST'])\ndef termux_shell():\n    data = request.json\n    cmd = data.get('cmd', '')\n    try:\n        res = subprocess.check_output(cmd, shell=True, stderr=subprocess.STDOUT, text=True, timeout=5)\n    except Exception as e:\n        res = str(e)\n    return jsonify({\"status\": \"success\", \"output\": res})\n\n@app.route('/api/home-files', methods=['GET'])\ndef home_files():\n    home_dir = os.path.expanduser('~')\n    try:\n        files = os.listdir(home_dir)\n    except Exception as e:\n        files = [str(e)]\n    return jsonify({\"status\": \"success\", \"path\": home_dir, \"files\": files[:15]})\n\n@app.route('/api/external-storage', methods=['GET'])\ndef external_storage():\n    ext_path = '/storage/emulated/0/Dev/ai_girl_bot'\n    try:\n        files = os.listdir(ext_path)\n    except Exception as e:\n        files = [str(e)]\n    return jsonify({\"status\": \"success\", \"path\": ext_path, \"files\": files})\n\nif __name__ == '__main__':\n    app.run(host='0.0.0.0', port=9505, debug=False)\n"
+      },
+      {
+        "source_file": "Full_Admin_Control/fix_option6.py",
+        "code_content": "with open('app.py', 'r', encoding='utf-8') as f:\n    lines = f.readlines()\n\nnew_lines = []\nskip = False\n\nfor line in lines:\n    if 'def option6():' in line or '/api/option6' in line:\n        skip = True\n        continue\n    if skip:\n        if line.strip().startswith('def ') or line.strip().startswith('@app.route'):\n            skip = False\n    if not skip:\n        new_lines.append(line)\n\noption6_code = '''\n@app.route('/api/option6')\ndef option6():\n    import os, subprocess\n    target_path = '/storage/emulated/0/Dev'\n    try:\n        cmd = 'ls -la ' + target_path\n        res = subprocess.check_output(cmd, shell=True, stderr=subprocess.STDOUT).decode('utf-8')\n    except Exception as e:\n        res = str(e)\n    return '📂 Admin External Storage: ' + target_path + '\\\\n\\\\n' + res\n'''\n\ninserted = False\nfinal_lines = []\nfor line in new_lines:\n    if 'HTML_TEMPLATE =' in line and not inserted:\n        final_lines.append(option6_code + '\\n')\n        inserted = True\n    final_lines.append(line)\n\nif not inserted:\n    final_lines.append(option6_code + '\\n')\n\nwith open('app.py', 'w', encoding='utf-8') as f:\n    f.writelines(final_lines)\n\nprint('✅ อัปเดตฟังก์ชันที่ 6 สำเร็จเรียบร้อยครับ!')\n"
+      }
+    ],
+    "termux_code_files": [
+      {
+        "file": "make_app.py",
+        "lines": 0,
+        "real_lines": 0,
+        "chars": 0,
+        "skills": 0,
+        "path": "/data/data/com.termux/files/home/make_app.py",
+        "content": ""
+      },
+      {
+        "file": "run_server.py",
+        "lines": 92,
+        "real_lines": 83,
+        "chars": 3988,
+        "skills": 8,
+        "path": "/data/data/com.termux/files/home/run_server.py",
+        "content": "from flask import Flask, request, jsonify\nimport socket\n\napp = Flask(__name__)\n\nHTML_CONTENT = \"\"\"<!DOCTYPE html>\n<html lang=\"th\">\n<head>\n    <meta charset=\"UTF-8\">\n    <meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no\">\n    <title>VAULT FULL CONTROL</title>\n    <style>\n        * { box-sizing: border-box; margin: 0; padding: 0; }\n        body { background-color: #121212; color: #e0e0e0; font-family: monospace, sans-serif; padding: 8px; zoom: 0.82; }\n        .container { max-width: 100%; margin: 0 auto; }\n        .card { background: #1e1e1e; border: 1px solid #333; border-radius: 6px; padding: 10px; margin-bottom: 8px; }\n        .card h3 { font-size: 13px; margin-bottom: 6px; color: #4CAF50; }\n        input[type=\"text\"] { width: 100%; background: #2d2d2d; border: 1px solid #444; color: #fff; padding: 6px; border-radius: 4px; margin-bottom: 6px; font-family: monospace; font-size: 12px; }\n        button { background: #4CAF50; color: white; border: none; padding: 6px 10px; border-radius: 4px; cursor: pointer; font-weight: bold; font-size: 12px; }\n        .output { background: #111; border: 1px solid #333; padding: 6px; border-radius: 4px; font-size: 11px; color: #a5d6a7; margin-top: 4px; word-break: break-all; white-space: pre-wrap; }\n    </style>\n</head>\n<body>\n    <div class=\"container\">\n        <div class=\"card\">\n            <h3>🤖 1. AI-to-AI Bridge:</h3>\n            <input type=\"text\" id=\"bridge-input\" placeholder=\"ป้อนคำสั่ง...\">\n            <button onclick=\"sendApi('bridge-input', '/api/ai-bridge', 'bridge-output')\">ส่งข้ามสะพาน AI</button>\n            <div class=\"output\" id=\"bridge-output\">รอรับคำสั่ง...</div>\n        </div>\n        <div class=\"card\">\n            <h3>💬 2. Direct AI Control:</h3>\n            <input type=\"text\" id=\"chat-input\" placeholder=\"คุย/สั่งการ AI...\">\n            <button onclick=\"sendApi('chat-input', '/api/ai', 'chat-output')\">ส่งคำสั่ง AI</button>\n            <div class=\"output\" id=\"chat-output\">รอรับคำสั่ง...</div>\n        </div>\n    </div>\n\n    <script>\n        async function sendApi(inputId, url, outputId) {\n            const inputVal = document.getElementById(inputId).value;\n            const outputBox = document.getElementById(outputId);\n            outputBox.innerText = '⏳ กำลังส่งข้อมูลไปยัง AI...';\n            \n            try {\n                const response = await fetch(url, {\n                    method: 'POST',\n                    headers: {'Content-Type': 'application/json'},\n                    body: JSON.stringify({ prompt: inputVal })\n                });\n                const data = await response.json();\n                outputBox.innerText = data.output || data.bridge_response || JSON.stringify(data);\n            } catch (err) {\n                outputBox.innerText = '❌ เกิดข้อผิดพลาด: ' + err;\n            }\n        }\n    </script>\n</body>\n</html>\"\"\"\n\n@app.route('/')\ndef index():\n    return HTML_CONTENT\n\n@app.route('/api/ai', methods=['POST'])\ndef api_ai():\n    data = request.get_json() or {}\n    prompt = data.get('prompt', '')\n    print(f\"\\n[Termux Log] รับคำสั่ง AI: {prompt}\")\n    return jsonify({\"output\": f\"🤖 AI รับทราบคำสั่งป๋าแล้วครับ: {prompt}\\n(จำลองการทำงานเรียบร้อย)\"})\n\n@app.route('/api/ai-bridge', methods=['POST'])\ndef api_ai_bridge():\n    data = request.get_json() or {}\n    prompt = data.get('prompt', '')\n    print(f\"\\n[Termux Log] สะพาน AI ส่งต่อข้อมูล: {prompt}\")\n    return jsonify({\"bridge_response\": f\"⚡ ข้อมูลถูกส่งข้ามสะพาน AI สำเร็จ!\\nเนื้อหา: {prompt}\"})\n\ndef find_port(start=9510):\n    for p in range(start, 9999):\n        with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:\n            try:\n                s.bind(('127.0.0.1', p))\n                return p\n            except OSError:\n                continue\n    return start\n\nif __name__ == '__main__':\n    port = find_port(9510)\n    print(f\"🚀 เซิร์ฟเวอร์พร้อมลุยที่ http://localhost:{port}\")\n    app.run(host='0.0.0.0', port=port, debug=False)\n"
+      }
+    ],
+    "termux_commands": [
+      "def get_dynamic_age():",
+      "if __name__ == '__main__':;     run_status_display()     while True:;         try:;             time.sleep(1)"
+    ],
+    "chat_history": [
+      {
+        "time": "2026-11-18 08:49",
+        "user": "cat start.sh"
+      },
+      {
+        "time": "2026-11-18 09:38",
+        "user": "python3 /storage/emulated/0/Dev/ai_girl_bot/main.py"
+      }
+    ],
+    "workspace_logs": [
+      {
+        "time": "2026-11-14 17:18:20",
+        "cmd": "สวัสดี รายงานตัวหน่อย)",
+        "reply": "❌ ไม่พบโมเดล AI ที่รองรับ กรุณาตรวจสอบคีย์อีกครั้งครับ"
+      },
+      {
+        "time": "2026-11-14 17:33:31",
+        "cmd": "วิธีทำข้าวผัด",
+        "reply": "❌ ไม่พบโมเดล AI ที่รองรับ กรุณาตรวจสอบคีย์อีกครั้งครับ"
+      }
+    ],
+    "custom_snippets": [],
+    "health_logs": []
+  }
+}

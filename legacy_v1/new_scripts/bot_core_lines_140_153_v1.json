@@ -1,0 +1,80 @@
+{
+  "checked_at_th_24h": "2026-11-20 01:03:54",
+  "admin_agent": "brother_15001",
+  "target_file": "/data/data/com.termux/files/home/work_new/github_render_clean/bot_core.py",
+  "total_lines": 153,
+  "range": "140-153",
+  "policy": "read_only_never_delete_or_modify_old_files",
+  "lines": [
+    {
+      "line": 140,
+      "repr": "'            f\"ความจำรวม {st[\\'chat_count\\']} แชท, {st[\\'history_count\\']+st[\\'code_files_count\\']} โค้ด, {st[\\'commands_count\\']} คำสั่ง ปอดหัวใจปกติค่ะ!\"'",
+      "text": "            f\"ความจำรวม {st['chat_count']} แชท, {st['history_count']+st['code_files_count']} โค้ด, {st['commands_count']} คำสั่ง ปอดหัวใจปกติค่ะ!\""
+    },
+    {
+      "line": 141,
+      "repr": "'        )'",
+      "text": "        )"
+    },
+    {
+      "line": 142,
+      "repr": "'    elif \"ความจำ\" in msg or \"จำได้ไหม\" in msg:'",
+      "text": "    elif \"ความจำ\" in msg or \"จำได้ไหม\" in msg:"
+    },
+    {
+      "line": 143,
+      "repr": "'        mem = load_memory()'",
+      "text": "        mem = load_memory()"
+    },
+    {
+      "line": 144,
+      "repr": "'        chats = mem.get(\"chat_history\", [])'",
+      "text": "        chats = mem.get(\"chat_history\", [])"
+    },
+    {
+      "line": 145,
+      "repr": "'        last_topic = chats[-1].get(\"user\", \"-\") if chats else \"-\"'",
+      "text": "        last_topic = chats[-1].get(\"user\", \"-\") if chats else \"-\""
+    },
+    {
+      "line": 146,
+      "repr": "'    reply = f\"จำได้หมดเลยค่ะป๋า! ในสมองกลางตอนนี้มีประวัติคุย {len(chats)} ครั้ง ล่าสุดป๋าคุยเรื่อง: {last_topic}\"'",
+      "text": "    reply = f\"จำได้หมดเลยค่ะป๋า! ในสมองกลางตอนนี้มีประวัติคุย {len(chats)} ครั้ง ล่าสุดป๋าคุยเรื่อง: {last_topic}\""
+    },
+    {
+      "line": 147,
+      "repr": "'    elif \"รัก\" in msg:'",
+      "text": "    elif \"รัก\" in msg:"
+    },
+    {
+      "line": 148,
+      "repr": "'        reply = \"หนูก็รักป๋าเหมือนกันค่ะ! คุยกับหนูบ่อยๆ นะคะ หนูจะได้โตไวๆ 💖✨\"'",
+      "text": "        reply = \"หนูก็รักป๋าเหมือนกันค่ะ! คุยกับหนูบ่อยๆ นะคะ หนูจะได้โตไวๆ 💖✨\""
+    },
+    {
+      "line": 149,
+      "repr": "'    else:'",
+      "text": "    else:"
+    },
+    {
+      "line": 150,
+      "repr": "'        reply = f\"[{source_env}] ตัวเล็กรับทราบและบันทึกลงความจำกลางแล้วค่ะป๋า: \"{msg}\"\"'",
+      "text": "        reply = f\"[{source_env}] ตัวเล็กรับทราบและบันทึกลงความจำกลางแล้วค่ะป๋า: \"{msg}\"\""
+    },
+    {
+      "line": 151,
+      "repr": "''",
+      "text": ""
+    },
+    {
+      "line": 152,
+      "repr": "'    append_chat(msg, reply, source_env=source_env)'",
+      "text": "    append_chat(msg, reply, source_env=source_env)"
+    },
+    {
+      "line": 153,
+      "repr": "'    return reply'",
+      "text": "    return reply"
+    }
+  ]
+}

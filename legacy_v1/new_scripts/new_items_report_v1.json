@@ -1,0 +1,231 @@
+{
+  "checked_at_th_24h": "2026-11-20 00:46:01",
+  "policy": "never_delete_old_code_create_new_files_only",
+  "meta": {
+    "user_name": "ป๋า",
+    "birth_date": "2026-11-11",
+    "version": "unified_master_2026",
+    "last_unified": "2026-11-18 16:43:13",
+    "total_memories": 127
+  },
+  "keyword_hits_count": 34,
+  "keyword_hits_sample": [
+    {
+      "path": "version",
+      "snippet": "unified_master_2026"
+    },
+    {
+      "path": "last_unified",
+      "snippet": "2026-11-18 16:43:13"
+    },
+    {
+      "path": "history[2].code_content",
+      "snippet": "with open('app.py', 'r', encoding='utf-8') as f:\n    content = f.read()\n\n# สร้างฟังก์ชัน option6 ใหม่ที่คืนค่าเป็นข้อความธรรมดาแต่เคลียร์เรนเดอร์ได้ถูกต้อง หรือเช็กโครงสร้าง JS\nold_code = '''@app.route(\\'/api/option6\\')\n"
+    },
+    {
+      "path": "history[4].code_content",
+      "snippet": "const http = require('http');\nconst net = require('net');\nconst crypto = require('crypto');\nconst PORT = process.env.PORT || 3000;\n\n// === 1. ตั้งค่า Master Admin ===\nconst ADMIN_USER = \"admin\";\nfunction checkPassword(pa"
+    },
+    {
+      "path": "history[6].code_content",
+      "snippet": "with open('app.py', 'r', encoding='utf-8') as f:\n    lines = f.readlines()\n\nnew_lines = []\nfor i, line in enumerate(lines):\n    # ตัดตั้งแต่บรรทัดที่ 186 เป็นต้นไปออก เพื่อเขียนใหม่ให้สะอาด\n    if i + 1 >= 186:\n        b"
+    },
+    {
+      "path": "history[8].code_content",
+      "snippet": "import os\nimport sys\nimport time\nimport json\nimport random\nimport urllib.request\nfrom datetime import datetime\n\nMEMORY_FILE = os.path.expanduser('~/ai_girl_bot/memory.json')\n\nlast_active_time = time.time()\nwas_sleeping ="
+    },
+    {
+      "path": "history[13].code_content",
+      "snippet": "from flask import Flask, render_template, request, jsonify\nimport subprocess, os, socket, json, urllib.request, urllib.error, shutil\nfrom datetime import datetime\n\napp = Flask(__name__)\nMEMORY_FILE = os.path.expanduser('"
+    },
+    {
+      "path": "history[14].code_content",
+      "snippet": "b = \"/storage/emulated/0/Dev/ai_workspace_ch3\"\nhtml = open(f\"{b}/templates/index.html\", encoding=\"utf-8\").read()\nold7 = '''    <!-- 7. Future Module -->\n    <div class=\"card\" id=\"card-7\">\n        <div class=\"card-header\""
+    },
+    {
+      "path": "history[15].code_content",
+      "snippet": "const http = require('http');\nconst net = require('net');\nconst PORT = process.env.PORT || 3000;\n\n// === 1. ตั้งค่า Master Admin ===\nconst ADMIN_USER = \"admin\";\nfunction checkPassword(pass) {\n  const expected = \"@#$&!?\"."
+    },
+    {
+      "path": "history[22].code_content",
+      "snippet": "import os\nimport json\nimport shutil\n\n# กำหนดเป้าหมายไฟล์ความจำที่ต้องปกป้อง\nFILE_1 = \"/storage/emulated/0/Dev/admin0/admin/memory_backup.json\"\nFILE_2 = \"/storage/emulated/0/Dev/seed_ch2_ok/memory.json\"\n\ndef safe_write(ta"
+    },
+    {
+      "path": "history[23].code_content",
+      "snippet": "from flask import Flask, render_template, request, jsonify\nimport subprocess, os, socket, json, urllib.request\nfrom datetime import datetime\n\napp = Flask(__name__)\nMEMORY_FILE = os.path.expanduser('~/ai_girl_bot/memory.j"
+    },
+    {
+      "path": "history[26].code_content",
+      "snippet": "import sys\nimport time\nimport os\nimport urllib.request\nfrom datetime import datetime\nimport threading\nimport select\nimport termios\nimport tty\n\n# --- เครื่องยนต์เบื้องหลัง (Background Heartbeat Engine) ---\nstop_event = th"
+    },
+    {
+      "path": "history[27].code_content",
+      "snippet": "import os\nimport shutil\n\nbase_dir = \"/storage/emulated/0/Dev/ai_workspace_ch3\"\napp_backup = f\"{base_dir}/backups/app_backup_stable.py\"\napp_file = f\"{base_dir}/app.py\"\nhtml_file = f\"{base_dir}/templates/index.html\"\nhtml_b"
+    },
+    {
+      "path": "history[35].code_content",
+      "snippet": "# -*- coding: utf-8 -*-\nimport subprocess\nimport os\nfrom flask import Flask, jsonify, render_template_string, request\n\napp = Flask(__name__)\n\nHTML_TEMPLATE = '<!DOCTYPE html>\\n<html lang=\"th\">\\n<head>\\n    <meta charset="
+    },
+    {
+      "path": "history[36].code_content",
+      "snippet": "const http = require('http');\nconst net = require('net');\nconst crypto = require('crypto');\nconst PORT = process.env.PORT || 3000;\n\n// === 1. ตั้งค่า Master Admin ===\nconst ADMIN_USER = \"admin\";\nfunction checkPassword(pa"
+    },
+    {
+      "path": "history[38].code_content",
+      "snippet": "const http = require('http');\nconst net = require('net');\nconst PORT = process.env.PORT || 3000;\n\n// === 1. ตั้งค่า Master Admin ===\nconst ADMIN_USER = \"admin\";\nfunction checkPassword(pass) {\n  const expected = \"@#$&!?\"."
+    },
+    {
+      "path": "history[42].source_file",
+      "snippet": "ai_girl_bot/merge_small_memory.py"
+    },
+    {
+      "path": "history[42].code_content",
+      "snippet": "import json\nimport os\n\nmaster_file = \"/storage/emulated/0/Dev/admin0/admin/memory_backup.json\"\n# ระบุพาธไฟล์ย่อยขนาดเล็ก (0.8 KB) ที่ป๋าต้องการดึงข้อมูลมารวม\nsmall_file = \"/storage/emulated/0/Dev/seed_ch2_ok/memory.json\""
+    },
+    {
+      "path": "history[44].code_content",
+      "snippet": "with open('app.py', 'r', encoding='utf-8') as f:\n    text = f.read()\n\nimport re\n# ลบฟังก์ชัน option6 เก่าออกให้เกลี้ยง\ntext = re.sub(r'@app\\.route\\(\\s*[\\'\"]/api/option6[\\'\"]\\s*\\)\\s*\\ndef option6\\(\\):.*?(?=@app\\.route|HTM"
+    },
+    {
+      "path": "history[46].source_file",
+      "snippet": "ai_girl_bot/merge_memories.py"
+    },
+    {
+      "path": "history[46].code_content",
+      "snippet": "import json\nimport os\n\nmaster_path = \"/storage/emulated/0/Dev/admin0/admin/memory_backup.json\"\nseed_path = \"/storage/emulated/0/Dev/seed_ch2_ok/memory.json\"\noutput_path = \"/storage/emulated/0/Dev/admin0/admin/memory_merg"
+    },
+    {
+      "path": "history[49].source_file",
+      "snippet": "Full_Admin_Control/merge_memory.py"
+    },
+    {
+      "path": "history[49].code_content",
+      "snippet": "import os\n\noutput_file = os.path.expanduser(\"/storage/emulated/0/Download/ALL_MEMORY_COMBINED.txt\")\nprint(f\"กำลังรวบรวมไฟล์ความจำและไฟล์ JSON ทั้งหมดในเครื่อง... กรุณารอสักครู่ค่ะป๋า\")\n\nsearch_paths = [\"/storage/emulated"
+    },
+    {
+      "path": "history[51].code_content",
+      "snippet": "# -*- coding: utf-8 -*-\nimport subprocess\nimport os\nfrom flask import Flask, jsonify, render_template_string, request\n\napp = Flask(__name__)\n\nHTML_TEMPLATE = '<!DOCTYPE html>\\n<html lang=\"th\">\\n<head>\\n    <meta charset="
+    },
+    {
+      "path": "history[53].code_content",
+      "snippet": "import os\nimport json\nfrom flask import Flask, render_template_string\n\napp = Flask(__name__)\nJSON_PATH = \"/storage/emulated/0/Dev/project_7/vision_batch_index.json\"\n\n@app.route('/')\ndef index():\n    if os.path.exists(JSO"
+    }
+  ],
+  "last_5_per_section": {
+    "history": [
+      {
+        "source_file": "ai_girl_bot/interactive_sync_watcher.py",
+        "code_content": "import os\nimport json\nimport time\nimport shutil\n\nmaster_source = \"/storage/emulated/0/Dev/admin0/admin/memory_backup.json\"\ntarget_file = \"/storage/emulated/0/Dev/seed_ch2_ok/memory.json\"\n\nprint(\"🛡️ [Interactive Guardian] เปิดระบบเฝ้าระวังการเขียนทับ...\")\nprint(f\"📁 เฝ้าระวังไฟล์: {master_source}\")\nprint(\"⚡ สถานะ: หากมีการเปลี่ยนแปลง/เขียนทับ ระบบจะเด้งถามให้ป๋ากด 'yes' ยืนยันทุกครั้งทันที\")\nprint(\"*(กด Ctrl+C เพื่อหยุดการทำงาน)*\\n\")\n\nlast_mtime = os.path.getmtime(master_source) if os.path.exists(master_source) else 0\n\ntry:\n    while True:\n        if os.path.exists(master_source):\n            current_mtime = os.path.getmtime(master_source)\n            \n            # ถ้าตรวจพบว่าไฟล์ต้นทางมีการเปลี่ยนแปลง (ถูกเขียนทับหรืออัปเดตใหม่)\n            if current_mtime != last_mtime:\n                print(\"\\n🔔 [Security Alert] ตรวจพบการเขียนทับ/เปลี่ยนแปลงไฟล์ตัวแม่!\")\n                print(f\"📁 ไฟล์: {master_source}\")\n                \n                # บังคับถามยืนยัน 1 สเต็ป\n                confirm = input(\"⚠️ ต้องการยืนยันซิงค์ข้อมูลนี้ไปยังไฟล์ปลายทางหรือไม่? (พิมพ์ 'yes' เพื่อยืนยัน): \").strip().lower()\n                \n                if confirm == 'yes':\n                    try:\n                        shutil.copy(master_source, target_file)\n                        print(\"✅ ผ่านการยืนยัน! ซิงค์ไฟล์ปลายทางเรียบร้อยแล้วครับป๋า\")\n                    except Exception as e:\n                        print(f\"❌ ซิงค์ไม่สำเร็จ: {e}\")\n                else:\n                    print(\"❌ ยกเลิกการซิงค์! คงข้อมูลปลายทางเดิมไว้ปลอดภัย\")\n                \n                last_mtime = current_mtime\n                \n        time.sleep(3) # เช็กทุกๆ 3 วิ\n        \nexcept KeyboardInterrupt:\n    print(\"\\n🛑 ปิดระบบเฝ้าระวังเรียบร้อยครับป๋า\")\n"
+      },
+      {
+        "source_file": "admin0/admin/กิตฮับล่าสุด/My-project/update_worker.py",
+        "code_content": "import urllib.request\nimport json\n\nACCOUNT_ID = \"ca9e360ba94ab541e9c6147bd9aec42e\"\nAPI_TOKEN = \"cfat_WS7NHCBQeyEYbHXbjJwdZAQpPjqrwkJ83ti4NX9Zx79c3247e\"\nWORKER_NAME = \"empty-wave-7ca3\"\n\nWORKER_CODE = \"\"\"\nimport { connect } from 'cloudflare:sockets';\n\nconst ADMIN_UUID = '36ad7e5a-f6b3-4971-bc60-e0a2a3a1938e';\nconst WORKER_TOKEN = 'ca9e360ba94ab541e9c6147bd9aec42e';\n\nexport default {\n  async fetch(request, env, ctx) {\n    const upgradeHeader = request.headers.get('Upgrade');\n    if (!upgradeHeader || upgradeHeader !== 'websocket') {\n      return new Response(JSON.stringify({ status: \"VLESS Worker Running\", token: WORKER_TOKEN }), {\n        status: 200,\n        headers: { \"Content-Type\": \"application/json\" }\n      });\n    }\n\n    const webSocketPair = new WebSocketPair();\n    const [client, server] = Object.values(webSocketPair);\n    server.accept();\n\n    let isAuthorized = false;\n\n    server.addEventListener('message', async (event) => {\n      try {\n        const data = new Uint8Array(event.data);\n        if (!isAuthorized) {\n          if (data.length < 18) {\n            server.close();\n            return;\n          }\n          const version = data[0];\n          const receivedUuid = [...data.slice(1, 17)]\n            .map(b => b.toString(16).padStart(2, '0'))\n            .join('');\n          \n          const formattedUuid = `${receivedUuid.slice(0, 8)}-${receivedUuid.slice(8, 12)}-${receivedUuid.slice(12, 16)}-${receivedUuid.slice(16, 20)}-${receivedUuid.slice(20)}`;\n\n          if (formattedUuid === ADMIN_UUID) {\n            isAuthorized = true;\n            const responseHeader = new Uint8Array([version, 0]);\n            server.send(responseHeader);\n          } else {\n            server.close();\n          }\n          return;\n        }\n      } catch (err) {\n        server.close();\n      }\n    });\n\n    return new Response(null, {\n      status: 101,\n      webSocket: client,\n    });\n  },\n};\n\"\"\"\n\nurl = f\"https://api.cloudflare.com/client/v4/accounts/{ACCOUNT_ID}/workers/scripts/{WORKER_NAME}\"\n\nreq = urllib.request.Request(\n    url,\n    data=WORKER_CODE.encode('utf-8'),\n    headers={\n        \"Authorization\": f\"Bearer {API_TOKEN}\",\n        \"Content-Type\": \"application/javascript\"\n    },\n    method=\"PUT\"\n)\n\ntry:\n    with urllib.request.urlopen(req) as response:\n        result = json.loads(response.read().decode('utf-8'))\n        if result.get(\"success\"):\n            print(\"🚀 อัปเดต Cloudflare Worker สำเร็จเรียบร้อย ลื่นปื๊ดๆ แล้วครับป๋า!\")\n        else:\n            print(f\"⚠️ มีข้อผิดพลาด: {result}\")\nexcept Exception as e:\n    print(f\"❌ เชื่อมต่อ API ไม่สำเร็จ: {e}\")\n"
+      },
+      {
+        "source_file": "Full_Admin_Control/fix_final.py",
+        "code_content": "with open('app.py', 'r', encoding='utf-8') as f:\n    lines = f.readlines()\n\nnew_lines = []\nfor i, line in enumerate(lines):\n    if i + 1 >= 186:\n        break\n    new_lines.append(line)\n\nclean_tail = '''\n# 6. Admin External Storage\n@app.route(\"/api/option6\", methods=[\"GET\"])\ndef api_option6():\n    import subprocess\n    target = \"/storage/emulated/0/Dev\"\n    res = subprocess.getoutput(f\"ls -la {target}\")\n    return jsonify({\n        \"status\": \"success\",\n        \"result\": f\"📂 Admin External Storage: {target}\\\\n\\\\n{res}\"\n    })\n\n# 7. Vision Batch & Index Dashboard\n@app.route(\"/api/vision_index\", methods=[\"GET\"])\ndef api_vision_index():\n    import json, os\n    p = \"/storage/emulated/0/Dev/Full_Admin_Control/vision_batch_index.json\"\n    d = json.load(open(p, encoding=\"utf-8\")) if os.path.exists(p) else []\n    return jsonify({\n        \"status\": \"success\",\n        \"total_images\": len(d),\n        \"total_size_mb\": round(sum(x.get(\"size_bytes\", 0) for x in d) / 1048576, 2),\n        \"items\": d\n    })\n\n@app.route(\"/api/vision_img\", methods=[\"GET\"])\ndef api_vision_img():\n    import os\n    from flask import request, send_file\n    p = request.args.get(\"path\", \"\")\n    return send_file(p) if p and os.path.isfile(p) else (\"Not Found\", 404)\n\nif __name__ == \"__main__\":\n    app.run(host=\"0.0.0.0\", port=18888, debug=True)\n'''\n\nnew_lines.append(clean_tail)\n\nwith open('app.py', 'w', encoding='utf-8') as f:\n    f.writelines(new_lines)\n\nprint('✅ แก้ไขโค้ดช่วงท้ายสมบูรณ์เรียบร้อย!')\n"
+      },
+      {
+        "source_file": "ai_girl_bot/app.py",
+        "code_content": "from flask import Flask, render_template, request, jsonify\nimport subprocess\nimport os\n\napp = Flask(__name__)\n\n@app.route('/')\ndef index():\n    return render_template('index.html')\n\n@app.route('/api/ai-bridge', methods=['POST'])\ndef ai_bridge():\n    data = request.json\n    user_prompt = data.get('prompt', '')\n    \n    pipeline_log = []\n    pipeline_log.append(f\"👴 [ปู่ใหญ่ Orchestrator]: รับโจทย์จากป๋า -> '{user_prompt}' กำลังกระจายงานให้ทีม...\")\n    pipeline_log.append(f\"👨‍พ่อ [Gemini Agent]: วิเคราะห์โครงสร้างและต้นตอของปัญหาสำเร็จ\")\n    pipeline_log.append(f\"👩‍แม่ [OpenAI Agent]: ตรวจสอบตรรกะคำสั่งและแนวทางแก้ไข\")\n    pipeline_log.append(f\"🧔 ลุง [Claude Agent] & 💻 พี่ใหญ่ [Copilot]: ตรวจสอบความถูกต้องของชุดโค้ด\")\n    pipeline_log.append(f\"👦 พี่ชาย [Llama Agent] & 🤖 น้องเล็ก [Custom Bot]: สรุปผลลัพธ์พร้อมใช้งาน\")\n    \n    final_output = \"\\n\".join(pipeline_log) + \"\\n\\n✨ [AI ครอบครัวรุมวิเคราะห์]: ประมวลผลตรรกะเสร็จสิ้นเรียบร้อย\"\n\n    # ระบบท่อเสียงแจ้งเตือนอัตโนมัติ (ถนอมสายตาแอดมิน)\n    try:\n        subprocess.run(\"play -n synth 0.15 sin 880 2>/dev/null\", shell=True)\n        speech_text = \"กองทัพ AI ประมวลผลโจทย์เสร็จเรียบร้อยแล้วครับป๋า\"\n        subprocess.run(f\"termux-tts-speak '{speech_text}'\", shell=True)\n    except Exception as e:\n        print(\"Audio alert error:\", e)\n\n    return jsonify({\n        \"status\": \"success\", \n        \"bridge_response\": final_output\n    })\n\n@app.route('/api/ai-control', methods=['POST'])\ndef ai_control():\n    data = request.json\n    prompt = data.get('prompt', '')\n    return jsonify({\"status\": \"success\", \"response\": f\"AI Engine processed: {prompt}\"})\n\n@app.route('/api/workspace', methods=['POST'])\ndef workspace_agent():\n    data = request.json\n    command = data.get('command', '')\n    return jsonify({\"status\": \"success\", \"response\": f\"Workspace executed: {command}\"})\n\n@app.route('/api/shell', methods=['POST'])\ndef termux_shell():\n    data = request.json\n    cmd = data.get('cmd', '')\n    try:\n        res = subprocess.check_output(cmd, shell=True, stderr=subprocess.STDOUT, text=True, timeout=5)\n    except Exception as e:\n        res = str(e)\n    return jsonify({\"status\": \"success\", \"output\": res})\n\n@app.route('/api/home-files', methods=['GET'])\ndef home_files():\n    home_dir = os.path.expanduser('~')\n    try:\n        files = os.listdir(home_dir)\n    except Exception as e:\n        files = [str(e)]\n    return jsonify({\"status\": \"success\", \"path\": home_dir, \"files\": files[:15]})\n\n@app.route('/api/external-storage', methods=['GET'])\ndef external_storage():\n    ext_path = '/storage/emulated/0/Dev/ai_girl_bot'\n    try:\n        files = os.listdir(ext_path)\n    except Exception as e:\n        files = [str(e)]\n    return jsonify({\"status\": \"success\", \"path\": ext_path, \"files\": files})\n\nif __name__ == '__main__':\n    app.run(host='0.0.0.0', port=9505, debug=False)\n"
+      },
+      {
+        "source_file": "Full_Admin_Control/fix_option6.py",
+        "code_content": "with open('app.py', 'r', encoding='utf-8') as f:\n    lines = f.readlines()\n\nnew_lines = []\nskip = False\n\nfor line in lines:\n    if 'def option6():' in line or '/api/option6' in line:\n        skip = True\n        continue\n    if skip:\n        if line.strip().startswith('def ') or line.strip().startswith('@app.route'):\n            skip = False\n    if not skip:\n        new_lines.append(line)\n\noption6_code = '''\n@app.route('/api/option6')\ndef option6():\n    import os, subprocess\n    target_path = '/storage/emulated/0/Dev'\n    try:\n        cmd = 'ls -la ' + target_path\n        res = subprocess.check_output(cmd, shell=True, stderr=subprocess.STDOUT).decode('utf-8')\n    except Exception as e:\n        res = str(e)\n    return '📂 Admin External Storage: ' + target_path + '\\\\n\\\\n' + res\n'''\n\ninserted = False\nfinal_lines = []\nfor line in new_lines:\n    if 'HTML_TEMPLATE =' in line and not inserted:\n        final_lines.append(option6_code + '\\n')\n        inserted = True\n    final_lines.append(line)\n\nif not inserted:\n    final_lines.append(option6_code + '\\n')\n\nwith open('app.py', 'w', encoding='utf-8') as f:\n    f.writelines(final_lines)\n\nprint('✅ อัปเดตฟังก์ชันที่ 6 สำเร็จเรียบร้อยครับ!')\n"
+      }
+    ],
+    "chat_history": [
+      {
+        "time": "2026-11-17 06:16",
+        "user": "EOF"
+      },
+      {
+        "time": "2026-11-17 06:18",
+        "user": "for f in *; do if [ -f \"$f\" ]; then echo \"========== FILE: $f ==========\"; cat \"$f\"; echo -e \"\\n\"; fi; done"
+      },
+      {
+        "time": "2026-11-18 08:41",
+        "user": "ls"
+      },
+      {
+        "time": "2026-11-18 08:49",
+        "user": "cat start.sh"
+      },
+      {
+        "time": "2026-11-18 09:38",
+        "user": "python3 /storage/emulated/0/Dev/ai_girl_bot/main.py"
+      }
+    ],
+    "termux_code_files": [
+      {
+        "file": "fix_ui.py",
+        "lines": 138,
+        "real_lines": 124,
+        "chars": 6603,
+        "skills": 3,
+        "path": "/data/data/com.termux/files/home/ai_girl_bot/fix_ui.py",
+        "content": "import os, glob\n\nhtml_code = \"\"\"<!DOCTYPE html>\n<html lang=\"th\">\n<head>\n    <meta charset=\"UTF-8\">\n    <meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0\">\n    <title>VAULT FULL CONTROL</title>\n    <style>\n        body { background: #121212; color: #e0e0e0; font-family: sans-serif; padding: 15px; margin: 0; }\n        h2 { color: #00ffcc; text-align: center; font-size: 1.2rem; }\n        .card { background: #1e1e1e; border: 1px solid #333; border-radius: 8px; padding: 12px; margin-bottom: 12px; }\n        .card-title { font-weight: bold; color: #ffcc00; margin-bottom: 8px; font-size: 0.95rem; }\n        input { width: 100%; box-sizing: border-box; background: #2c2c2c; border: 1px solid #444; color: #fff; padding: 8px; border-radius: 4px; margin-bottom: 8px; }\n        button { background: #00cc88; color: #000; border: none; padding: 8px 14px; border-radius: 4px; font-weight: bold; margin-right: 5px; margin-bottom: 5px; cursor: pointer; }\n        .red { background: #ff4d4d; color: #fff; }\n        .blue { background: #0088ff; color: #fff; }\n        .purple { background: #cc00ff; color: #fff; }\n        pre { background: #0a0a0a; color: #00ff66; padding: 8px; border-radius: 4px; white-space: pre-wrap; word-wrap: break-word; font-size: 0.85rem; margin-top: 8px; }\n    </style>\n</head>\n<body>\n    <h2>🛡️ VAULT FULL CONTROL (6 Functions)</h2>\n\n    <div class=\"card\">\n        <div class=\"card-title\">💬 1. Direct AI Control:</div>\n        <input id=\"aiPrompt\" placeholder=\"คุย/สั่งการ AI...\">\n        <button onclick=\"sendPost('/api/ai', {prompt: val('aiPrompt')}, 'aiResult')\">ส่ง</button>\n        <pre id=\"aiResult\">พร้อมรับคำสั่ง...</pre>\n    </div>\n\n    <div class=\"card\">\n        <div class=\"card-title\">💼 2. Workspace / ⚡ Agent:</div>\n        <input id=\"workspaceCmd\" placeholder=\"สั่งงาน workspace...\">\n        <button onclick=\"sendPost('/api/workspace', {command: val('workspaceCmd')}, 'workspaceResult')\">ส่ง</button>\n        <pre id=\"workspaceResult\">พร้อมทำงาน...</pre>\n    </div>\n\n    <div class=\"card\">\n        <div class=\"card-title\">💻 3. Termux Shell:</div>\n        <input id=\"shellCmd\" placeholder=\"คำสั่ง Linux เช่น ls, pwd...\">\n        <button class=\"red\" onclick=\"sendPost('/api/shell', {command: val('shellCmd')}, 'shellResult')\">รัน</button>\n        <pre id=\"shellResult\">Termux Terminal Ready...</pre>\n    </div>\n\n    <div class=\"card\">\n        <div class=\"card-title\">📁 4. Termux Home Directory (~):</div>\n        <button class=\"blue\" onclick=\"sendGet('/api/homedir', 'dirResult')\">โหลดรายชื่อไฟล์ Termux Home</button>\n        <pre id=\"dirResult\">กดปุ่มเพื่อโหลด...</pre>\n    </div>\n\n    <div class=\"card\">\n        <div class=\"card-title\">🔐 5. Admin External Storage Access Control:</div>\n        <div id=\"accessStatusLabel\" style=\"color:#ff4d4d; margin-bottom:8px;\">สถานะสิทธิ์: 🔒 ปิดกั้นการเข้าถึง (Locked)</div>\n        <button onclick=\"toggleAccess(true)\">🔓 เปิดอนุญาต</button>\n        <button class=\"red\" onclick=\"toggleAccess(false)\">🔒 ปิดสิทธิ์</button>\n        <button class=\"purple\" onclick=\"sendGet('/api/admin-storage', 'adminDirResult')\">โหลดข้อมูลพื้นที่จัดเก็บแอดมิน</button>\n        <pre id=\"adminDirResult\">สถานะปัจจุบัน: ถูกปิดกั้นการเข้าถึง</pre>\n    </div>\n\n    <div class=\"card\" style=\"border-color: #00ffcc;\">\n        <div class=\"card-title\" style=\"color: #00ffcc;\">🤖 6. AI-to-AI Bridge:</div>\n        <input id=\"bridgePrompt\" placeholder=\"ป้อนคำสั่งเชื่อมต่อไปยัง AI ตัวที่ 2...\">\n        <button class=\"purple\" onclick=\"sendPost('/api/ai-bridge', {prompt: val('bridgePrompt')}, 'bridgeResult')\">ส่งข้ามสะพาน AI</button>\n        <pre id=\"bridgeResult\">สะพานเชื่อมต่อ AI พร้อมใช้งาน...</pre>\n    </div>\n\n    <script>\n        const val = id => document.getElementById(id).value;\n\n        async function sendPost(url, payload, outId) {\n            const box = document.getElementById(outId);\n            box.innerText = '⏳ กำลังประมวลผล...';\n            try {\n                const res = await fetch(url, {\n                    method: 'POST',\n                    headers: {'Content-Type': 'application/json'},\n                    body: JSON.stringify(payload)\n                });\n                const data = await res.json();\n                box.innerText = data.result || data.output || data.bridge_response || data.message || JSON.stringify(data, null, 2);\n            } catch (err) {\n                box.innerText = '❌ Error: ' + err;\n            }\n        }\n\n        async function sendGet(url, outId) {\n            const box = document.getElementById(outId);\n            box.innerText = '⏳ กำลังโหลด...';\n            try {\n                const res = await fetch(url);\n                const data = await res.json();\n                box.innerText = data.output || data.message || JSON.stringify(data, null, 2);\n            } catch (err) {\n                box.innerText = '❌ Error: ' + err;\n            }\n        }\n\n        async function toggleAccess(allow) {\n            try {\n                const res = await fetch('/api/admin-access', {\n                    method: 'POST',\n                    headers: {'Content-Type': 'application/json'},\n                    body: JSON.stringify({allow: allow})\n                });\n                const data = await res.json();\n                const label = document.getElementById('accessStatusLabel');\n                if (data.allowed) {\n                    label.style.color = '#00ffcc';\n                    label.innerText = 'สถานะสิทธิ์: 🔓 เปิดอนุญาตแล้ว (Unlocked)';\n                } else {\n                    label.style.color = '#ff4d4d';\n                    label.innerText = 'สถานะสิทธิ์: 🔒 ปิดกั้นการเข้าถึง (Locked)';\n                }\n            } catch (err) {\n                alert('Error: ' + err);\n            }\n        }\n    </script>\n</body>\n</html>\"\"\"\n\nos.makedirs('templates', exist_ok=True)\nwith open('templates/index.html', 'w', encoding='utf-8') as f:\n    f.write(html_code)\n\nfor pyfile in glob.glob('*.py'):\n    if pyfile == 'fix_ui.py': continue\n    txt = open(pyfile, encoding='utf-8', errors='ignore').read()\n    if 'VAULT FULL CONTROL' in txt and 'render_template_string' in txt:\n        import re\n        txt = re.sub(r'render_template_string\\s*\\(.*?\\)', 'render_template(\"index.html\")', txt, flags=re.DOTALL)\n        if 'render_template' not in txt.split('import')[1].split('\\n')[0]:\n            txt = txt.replace('from flask import ', 'from flask import render_template, ', 1)\n        open(pyfile, 'w', encoding='utf-8').write(txt)\n        print(f\"✅ อัปเดตให้ {pyfile} เรียกใช้ templates/index.html แล้ว\")\n\nprint(\"✅ ติดตั้งหน้าเว็บ 6 ฟังก์ชันสมบูรณ์ 100%\")\n"
+      },
+      {
+        "file": "run_vault.sh",
+        "lines": 6,
+        "real_lines": 6,
+        "chars": 152,
+        "skills": 0,
+        "path": "/data/data/com.termux/files/home/ai_girl_bot/run_vault.sh",
+        "content": "#!/bin/bash\necho '🧹 กำลังเคลียร์พอร์ตและซากเก่า...'\npkill -f python3\nsleep 1\necho '🚀 กำลังสตาร์ท MASSIVE STORAGE VAULT ที่พอร์ต 9500...'\npython3 app.py\n"
+      },
+      {
+        "file": "seed_master.py",
+        "lines": 90,
+        "real_lines": 78,
+        "chars": 3544,
+        "skills": 3,
+        "path": "/data/data/com.termux/files/home/ai_girl_bot/seed_master.py",
+        "content": "cat << 'EOF' > ~/seed_master.py\nimport os\nimport sys\nimport time\nimport urllib.request\nfrom datetime import datetime\n\ndef get_realtime_weather():\n    \"\"\" ดึงสภาพอากาศเรียลไทม์และแปลงอีโมจิตามสภาพอากาศจริง \"\"\"\n    try:\n        # ดึงข้อมูลจาก wttr.in รูปแบบสภาพอากาศแบบข้อความ + อุณหภูมิ\n        req = urllib.request.Request(\n            'https://wttr.in/?format=%C|%t',\n            headers={'User-Agent': 'curl/7.68.0'}\n        )\n        with urllib.request.urlopen(req, timeout=3) as response:\n            raw_data = response.read().decode('utf-8').strip()\n            condition, temp = raw_data.split('|')\n            condition_lower = condition.lower()\n\n            # แปลงข้อความสภาพอากาศเป็นอีโมจิจริงตรงตามสถานะ\n            if 'thunder' in condition_lower or 'storm' in condition_lower:\n                weather_icon = \"🌩️\"\n            elif 'rain' in condition_lower or 'drizzle' in condition_lower or 'shower' in condition_lower:\n                weather_icon = \"🌧️\"\n            elif 'clear' in condition_lower or 'sunny' in condition_lower:\n                weather_icon = \"☀️\"\n            elif 'partly cloudy' in condition_lower:\n                weather_icon = \"⛅\"\n            elif 'cloud' in condition_lower or 'overcast' in condition_lower:\n                weather_icon = \"☁️\"\n            elif 'fog' in condition_lower or 'mist' in condition_lower or 'haze' in condition_lower:\n                weather_icon = \"🌫️\"\n            else:\n                weather_icon = \"🌤️\"\n\n            return True, f\"{weather_icon} {temp.strip()}\"\n    except Exception:\n        # หากเชื่อมต่อเน็ตไม่ได้หรือไม่สามารถดึงข้อมูลได้\n        return False, \"🌡️ Offline\"\n\ndef get_current_status(step):\n    \"\"\" แสดง Header สไตล์เด็กสาว 3 วัน + วันที่อย่างเดียว + สภาพอากาศอีโมจิจริง \"\"\"\n    now = datetime.now()\n    current_date = now.strftime('%d/%m/%Y')  # มีแค่วันที่ ไม่มีเวลา\n\n    is_online, weather_info = get_realtime_weather()\n\n    # สีไฟสถานะรูปโลก (เน็ตดี/ระบบตื่น = เขียว, หลุด/แอนดรอยด์ตัดหลับ = แดง)\n    if is_online:\n        net_status = \"\\033[32m🌐 ONLINE\\033[0m\"\n    else:\n        net_status = \"\\033[31m🌐 OFFLINE\\033[0m\"\n\n    # ไอคอนเด็กสาวกะพริบสายฟ้าเบาๆ\n    girl_icon = \"⚡ 👧 ⚡\" if step % 2 == 0 else \"  👧  \"\n\n    return f\"[{net_status} | {girl_icon} | {current_date} | {weather_info}]\"\n\ndef main():\n    os.system('clear')\n    step = 0\n    header_status = get_current_status(step)\n    \n    print(header_status)\n    print(\"--------------------------------------------------\")\n    print(\"==================================================\")\n    print(f\"👧 AI Little Girl v1.0 (3 Days Old) | {datetime.now().strftime('%d/%m/%Y')}\")\n    print(\"==================================================\")\n    print(\"\\n👧 : สวัสดีค่ะป๋า! หนูเปลี่ยนอีโมจิตามสภาพอากาศจริงข้างนอกแล้วน้า มีแดด มีฝน หรือเมฆเยอะ หนูจับได้หมดเลยค่ะ! ☀️🌧️\\n\")\n\n    while True:\n        try:\n            user_input = input(\"ป๋า > \")\n            if user_input.lower() in ['exit', 'quit']:\n                print(\"\\n👧 : หนูไปนอนก่อนนะคะป๋า บ๊ายบายค่ะ! 💤\")\n                break\n            elif \"เวลา\" in user_input or \"กี่โมง\" in user_input:\n                current_time = datetime.now().strftime('%H:%M:%S')\n                print(f\"\\n👧 : ตอนนี้เวลา {current_time} ค่ะป๋า! ⏰\\n\")\n            elif user_input.strip():\n                print(f\"\\n👧 : หนูรับทราบค่ะป๋า! (ป๋าพิมพ์ว่า: '{user_input}') ❤️\\n\")\n        except (KeyboardInterrupt, EOFError):\n            print(\"\\n👧 : หนูขอตัวแป๊บนึงนะคะป๋า ฝันดีค่ะ!\")\n            break\n\nif __name__ == '__main__':\n    main()\nEOF\npython3 ~/seed_master.py\n"
+      },
+      {
+        "file": "make_app.py",
+        "lines": 0,
+        "real_lines": 0,
+        "chars": 0,
+        "skills": 0,
+        "path": "/data/data/com.termux/files/home/make_app.py",
+        "content": ""
+      },
+      {
+        "file": "run_server.py",
+        "lines": 92,
+        "real_lines": 83,
+        "chars": 3988,
+        "skills": 8,
+        "path": "/data/data/com.termux/files/home/run_server.py",
+        "content": "from flask import Flask, request, jsonify\nimport socket\n\napp = Flask(__name__)\n\nHTML_CONTENT = \"\"\"<!DOCTYPE html>\n<html lang=\"th\">\n<head>\n    <meta charset=\"UTF-8\">\n    <meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no\">\n    <title>VAULT FULL CONTROL</title>\n    <style>\n        * { box-sizing: border-box; margin: 0; padding: 0; }\n        body { background-color: #121212; color: #e0e0e0; font-family: monospace, sans-serif; padding: 8px; zoom: 0.82; }\n        .container { max-width: 100%; margin: 0 auto; }\n        .card { background: #1e1e1e; border: 1px solid #333; border-radius: 6px; padding: 10px; margin-bottom: 8px; }\n        .card h3 { font-size: 13px; margin-bottom: 6px; color: #4CAF50; }\n        input[type=\"text\"] { width: 100%; background: #2d2d2d; border: 1px solid #444; color: #fff; padding: 6px; border-radius: 4px; margin-bottom: 6px; font-family: monospace; font-size: 12px; }\n        button { background: #4CAF50; color: white; border: none; padding: 6px 10px; border-radius: 4px; cursor: pointer; font-weight: bold; font-size: 12px; }\n        .output { background: #111; border: 1px solid #333; padding: 6px; border-radius: 4px; font-size: 11px; color: #a5d6a7; margin-top: 4px; word-break: break-all; white-space: pre-wrap; }\n    </style>\n</head>\n<body>\n    <div class=\"container\">\n        <div class=\"card\">\n            <h3>🤖 1. AI-to-AI Bridge:</h3>\n            <input type=\"text\" id=\"bridge-input\" placeholder=\"ป้อนคำสั่ง...\">\n            <button onclick=\"sendApi('bridge-input', '/api/ai-bridge', 'bridge-output')\">ส่งข้ามสะพาน AI</button>\n            <div class=\"output\" id=\"bridge-output\">รอรับคำสั่ง...</div>\n        </div>\n        <div class=\"card\">\n            <h3>💬 2. Direct AI Control:</h3>\n            <input type=\"text\" id=\"chat-input\" placeholder=\"คุย/สั่งการ AI...\">\n            <button onclick=\"sendApi('chat-input', '/api/ai', 'chat-output')\">ส่งคำสั่ง AI</button>\n            <div class=\"output\" id=\"chat-output\">รอรับคำสั่ง...</div>\n        </div>\n    </div>\n\n    <script>\n        async function sendApi(inputId, url, outputId) {\n            const inputVal = document.getElementById(inputId).value;\n            const outputBox = document.getElementById(outputId);\n            outputBox.innerText = '⏳ กำลังส่งข้อมูลไปยัง AI...';\n            \n            try {\n                const response = await fetch(url, {\n                    method: 'POST',\n                    headers: {'Content-Type': 'application/json'},\n                    body: JSON.stringify({ prompt: inputVal })\n                });\n                const data = await response.json();\n                outputBox.innerText = data.output || data.bridge_response || JSON.stringify(data);\n            } catch (err) {\n                outputBox.innerText = '❌ เกิดข้อผิดพลาด: ' + err;\n            }\n        }\n    </script>\n</body>\n</html>\"\"\"\n\n@app.route('/')\ndef index():\n    return HTML_CONTENT\n\n@app.route('/api/ai', methods=['POST'])\ndef api_ai():\n    data = request.get_json() or {}\n    prompt = data.get('prompt', '')\n    print(f\"\\n[Termux Log] รับคำสั่ง AI: {prompt}\")\n    return jsonify({\"output\": f\"🤖 AI รับทราบคำสั่งป๋าแล้วครับ: {prompt}\\n(จำลองการทำงานเรียบร้อย)\"})\n\n@app.route('/api/ai-bridge', methods=['POST'])\ndef api_ai_bridge():\n    data = request.get_json() or {}\n    prompt = data.get('prompt', '')\n    print(f\"\\n[Termux Log] สะพาน AI ส่งต่อข้อมูล: {prompt}\")\n    return jsonify({\"bridge_response\": f\"⚡ ข้อมูลถูกส่งข้ามสะพาน AI สำเร็จ!\\nเนื้อหา: {prompt}\"})\n\ndef find_port(start=9510):\n    for p in range(start, 9999):\n        with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:\n            try:\n                s.bind(('127.0.0.1', p))\n                return p\n            except OSError:\n                continue\n    return start\n\nif __name__ == '__main__':\n    port = find_port(9510)\n    print(f\"🚀 เซิร์ฟเวอร์พร้อมลุยที่ http://localhost:{port}\")\n    app.run(host='0.0.0.0', port=port, debug=False)\n"
+      }
+    ],
+    "termux_commands": [
+      "httpd.serve_forever()",
+      "run()",
+      "python /storage/emulated/0/Dev/ai_girl_bot/main.py",
+      "def get_dynamic_age():",
+      "if __name__ == '__main__':;     run_status_display()     while True:;         try:;             time.sleep(1)"
+    ],
+    "workspace_logs": [
+      {
+        "time": "2026-11-14 17:17:36",
+        "cmd": "สวัสดี รายงานตัวหน่อย",
+        "reply": "❌ ไม่พบโมเดล AI ที่รองรับ กรุณาตรวจสอบคีย์อีกครั้งครับ"
+      },
+      {
+        "time": "2026-11-14 17:18:20",
+        "cmd": "สวัสดี รายงานตัวหน่อย)",
+        "reply": "❌ ไม่พบโมเดล AI ที่รองรับ กรุณาตรวจสอบคีย์อีกครั้งครับ"
+      },
+      {
+        "time": "2026-11-14 17:33:31",
+        "cmd": "วิธีทำข้าวผัด",
+        "reply": "❌ ไม่พบโมเดล AI ที่รองรับ กรุณาตรวจสอบคีย์อีกครั้งครับ"
+      }
+    ]
+  }
+}

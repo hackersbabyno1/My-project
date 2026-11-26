@@ -1,0 +1,61 @@
+{
+  "checked_at_th_24h": "2026-11-20 01:48:19",
+  "admin_agent": "brother_15001",
+  "policy": "never_delete_or_modify_old_files",
+  "all_files_ok": true,
+  "flask_health_ok": true,
+  "last_unified": "2026-11-20 00:50:48",
+  "chat_history_count": 73,
+  "sample_reply": "[ready_bundle_check] ตัวเล็กรับทราบและบันทึกลงความจำกลางแล้วค่ะป๋า: บอทพี่พร้อมใช้แล้ว",
+  "files": [
+    {
+      "rel_path": "Procfile",
+      "exists": true,
+      "bytes": 67,
+      "ok": true,
+      "note": "ok"
+    },
+    {
+      "rel_path": "requirements.txt",
+      "exists": true,
+      "bytes": 30,
+      "ok": true,
+      "note": "ok"
+    },
+    {
+      "rel_path": "templates/index.html",
+      "exists": true,
+      "bytes": 12813,
+      "ok": true,
+      "note": "ok"
+    },
+    {
+      "rel_path": "memory.json",
+      "exists": true,
+      "bytes": 1001500,
+      "ok": true,
+      "note": "json_ok"
+    },
+    {
+      "rel_path": "new_scripts/bot_core_render_v1.py",
+      "exists": true,
+      "bytes": 3190,
+      "ok": true,
+      "note": "ast_ok"
+    },
+    {
+      "rel_path": "new_scripts/render_bridge_v1.py",
+      "exists": true,
+      "bytes": 2953,
+      "ok": true,
+      "note": "ast_ok"
+    },
+    {
+      "rel_path": "new_scripts/render_app_v1.py",
+      "exists": true,
+      "bytes": 3217,
+      "ok": true,
+      "note": "ast_ok"
+    }
+  ]
+}
